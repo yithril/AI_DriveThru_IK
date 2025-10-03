@@ -265,17 +265,31 @@ class OrderSessionService:
         }
     
     async def _recalculate_order_totals(self, order_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Recalculate order totals based on items"""
+        """Recalculate order totals based on items including ingredient modifier costs"""
         try:
             items = order_data.get("items", [])
             subtotal = 0.0
             
-            # Calculate subtotal from all items
+            # Calculate subtotal from all items including modifier costs
             for item in items:
                 item_price = item.get("menu_item", {}).get("price", 0.0)
                 quantity = item.get("quantity", 1)
-                item_total = item_price * quantity
+                modifications = item.get("modifications", {})
+                
+                # Calculate base item total
+                base_item_total = item_price * quantity
+                
+                # Calculate modifier costs
+                modifier_costs = await self._calculate_modifier_costs(
+                    item.get("menu_item_id"), 
+                    modifications
+                )
+                
+                # Total item cost = base cost + modifier costs
+                item_total = base_item_total + modifier_costs
                 subtotal += item_total
+                
+                logger.info(f"Item calculation: base={base_item_total}, modifiers={modifier_costs}, total={item_total}")
             
             # For demo purposes, no tax calculation
             # In production, this would be handled by a tax service based on location/business rules
@@ -294,6 +308,59 @@ class OrderSessionService:
         except Exception as e:
             logger.error(f"Error recalculating order totals: {e}")
             return order_data
+    
+    async def _calculate_modifier_costs(self, menu_item_id: int, modifications: Dict[str, Any]) -> float:
+        """
+        Calculate additional costs for ingredient modifications
+        
+        Args:
+            menu_item_id: ID of the menu item
+            modifications: Dictionary containing modification data with modifiers list
+            
+        Returns:
+            Total additional cost for all modifiers
+        """
+        try:
+            if not modifications or not modifications.get("modifiers"):
+                return 0.0
+            
+            modifiers = modifications.get("modifiers", [])
+            if not isinstance(modifiers, list):
+                return 0.0
+            
+            total_modifier_cost = 0.0
+            
+            # Process each modifier tuple (ingredient_id, action)
+            for modifier in modifiers:
+                if not isinstance(modifier, (list, tuple)) or len(modifier) != 2:
+                    continue
+                    
+                ingredient_id, action = modifier
+                
+                # Only charge for "extra" type modifications
+                if action not in ["extra", "heavy", "double", "more", "additional"]:
+                    continue
+                
+                # Look up the MenuItemIngredient record to get additional_cost
+                from app.models.menu_item_ingredient import MenuItemIngredient
+                
+                menu_item_ingredient = await MenuItemIngredient.filter(
+                    menu_item_id=menu_item_id,
+                    ingredient_id=ingredient_id
+                ).first()
+                
+                if menu_item_ingredient and menu_item_ingredient.additional_cost:
+                    additional_cost = float(menu_item_ingredient.additional_cost)
+                    total_modifier_cost += additional_cost
+                    
+                    logger.info(f"Modifier cost: ingredient_id={ingredient_id}, action={action}, cost={additional_cost}")
+            
+            logger.info(f"Total modifier costs for menu_item_id={menu_item_id}: {total_modifier_cost}")
+            return total_modifier_cost
+            
+        except Exception as e:
+            logger.error(f"Error calculating modifier costs: {e}")
+            return 0.0
     
     async def remove_item_from_order(self, order_id: str, item_id: str) -> bool:
         """

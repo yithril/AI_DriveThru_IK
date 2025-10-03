@@ -3,10 +3,14 @@
  */
 
 export interface LineItem {
+  id: string;
   menu_item_id: number;
   name: string;
   price: number;
   quantity: number;
+  additional_cost?: number;
+  additional_costs?: { name: string; cost: number }[];
+  total_price?: number;
   customizations?: string[];
   size?: string;
   special_instructions?: string;

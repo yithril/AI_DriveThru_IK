@@ -353,3 +353,65 @@ class TestOrderSessionService:
         assert await order_session_service.clear_order("test") is False
         assert await order_session_service.finalize_order("test") is False
         assert await order_session_service.delete_order("test") is False
+
+    async def test_calculate_modifier_costs_with_extra_ingredients(self, order_session_service):
+        """Test modifier cost calculation for extra ingredients"""
+        # Mock the MenuItemIngredient model
+        from unittest.mock import patch, AsyncMock
+        
+        mock_ingredient = AsyncMock()
+        mock_ingredient.additional_cost = 0.50  # $0.50 extra for cheese
+        
+        with patch('app.services.order_session_service.MenuItemIngredient') as mock_model:
+            mock_model.filter.return_value.first.return_value = mock_ingredient
+            
+            modifications = {
+                "modifiers": [
+                    [1, "extra"],  # ingredient_id=1, action="extra"
+                    [2, "no"]       # ingredient_id=2, action="no" (should not charge)
+                ]
+            }
+            
+            result = await order_session_service._calculate_modifier_costs(
+                menu_item_id=1,
+                modifications=modifications
+            )
+            
+            assert result == 0.50  # Only the "extra" modifier should be charged
+
+    async def test_calculate_modifier_costs_no_modifiers(self, order_session_service):
+        """Test modifier cost calculation with no modifiers"""
+        modifications = {}
+        
+        result = await order_session_service._calculate_modifier_costs(
+            menu_item_id=1,
+            modifications=modifications
+        )
+        
+        assert result == 0.0
+
+    async def test_calculate_modifier_costs_invalid_data(self, order_session_service):
+        """Test modifier cost calculation with invalid modifier data"""
+        modifications = {
+            "modifiers": [
+                "invalid_modifier",  # Not a tuple
+                [1, "extra", "too_many"],  # Too many elements
+                [1, "extra"]  # Valid modifier
+            ]
+        }
+        
+        # Mock the MenuItemIngredient model
+        from unittest.mock import patch, AsyncMock
+        
+        mock_ingredient = AsyncMock()
+        mock_ingredient.additional_cost = 0.75
+        
+        with patch('app.services.order_session_service.MenuItemIngredient') as mock_model:
+            mock_model.filter.return_value.first.return_value = mock_ingredient
+            
+            result = await order_session_service._calculate_modifier_costs(
+                menu_item_id=1,
+                modifications=modifications
+            )
+            
+            assert result == 0.75  # Only the valid modifier should be processed

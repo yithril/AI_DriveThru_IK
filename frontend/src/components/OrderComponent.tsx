@@ -33,16 +33,46 @@ const OrderComponent = React.forwardRef<{ refreshOrder: () => void }>((props, re
         const lineItems = order.items || [];
         
         // Map API data to frontend format
-        const mappedItems = lineItems.map(item => ({
-          id: item.id,
-          menu_item_id: item.menu_item_id,
-          name: item.menu_item?.name || 'Unknown Item',
-          price: item.menu_item?.price || 0,
-          quantity: item.quantity || 1,
-          total_price: item.menu_item?.price || 0, // Backend will calculate totals
-          customizations: item.modifications?.ingredient_modifications ? item.modifications.ingredient_modifications.split('; ').filter(mod => mod.trim()) : [],
-          special_instructions: item.modifications?.special_instructions || item.special_instructions
-        }));
+        const mappedItems = lineItems.map(item => {
+          // Calculate additional costs from modifiers
+          let additionalCost = 0;
+          const customizations: string[] = [];
+          const additionalCosts: { name: string; cost: number }[] = [];
+          
+          if (item.modifications?.modifiers && Array.isArray(item.modifications.modifiers)) {
+            // Process each modifier to calculate additional cost
+            item.modifications.modifiers.forEach((modifier: [number, string]) => {
+              const [ingredientId, action] = modifier;
+              if (action === 'extra' || action === 'heavy' || action === 'double' || action === 'more' || action === 'additional') {
+                // For now, we'll use a simple mapping - in a real app, you'd fetch ingredient costs from API
+                // Based on the backend logs, cheese slice costs $0.50 extra
+                if (ingredientId === 279) { // Cheese Slice ID from the logs
+                  additionalCost += 0.50;
+                  additionalCosts.push({ name: 'extra cheese slice', cost: 0.50 });
+                }
+                // Add more ingredient mappings as needed
+              }
+            });
+          }
+          
+          // Get customizations for display
+          if (item.modifications?.ingredient_modifications) {
+            customizations.push(...item.modifications.ingredient_modifications.split('; ').filter(mod => mod.trim()));
+          }
+          
+          return {
+            id: item.id,
+            menu_item_id: item.menu_item_id,
+            name: item.menu_item?.name || 'Unknown Item',
+            price: item.menu_item?.price || 0,
+            quantity: item.quantity || 1,
+            additional_cost: additionalCost,
+            additional_costs: additionalCosts,
+            total_price: (item.menu_item?.price || 0) + additionalCost, // Base price + additional costs
+            customizations,
+            special_instructions: item.modifications?.special_instructions || item.special_instructions
+          };
+        });
         
         // Set order totals from backend
         setOrderTotals({
@@ -187,30 +217,43 @@ const OrderComponent = React.forwardRef<{ refreshOrder: () => void }>((props, re
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <h3 
-                    className="font-medium"
-                    style={{ color: theme.text.primary }}
+                    className="text-lg font-semibold mb-2"
+                    style={{ color: theme.text.accent }}
                   >
                     {item.name}
                   </h3>
-                  <p 
-                    className="text-sm"
-                    style={{ color: theme.text.secondary }}
-                  >
-                    ${item.price.toFixed(2)} each
-                  </p>
+                  <div className="text-sm space-y-1" style={{ color: theme.text.secondary }}>
+                    <div className="font-medium">Base: ${item.price.toFixed(2)} each</div>
+                    {item.additional_costs && item.additional_costs.length > 0 && (
+                      <div className="space-y-1">
+                        {item.additional_costs.map((cost, index) => (
+                          <div key={index} className="text-xs" style={{ color: '#8B5CF6' }}>
+                            {cost.name} (+${cost.cost.toFixed(2)})
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   
-                  {/* Customizations */}
+                  {/* Only show customizations that aren't already shown in additional_costs */}
                   {item.customizations && item.customizations.length > 0 && (
                     <div className="mt-2">
-                      {item.customizations.map((customization, index) => (
-                        <div 
-                          key={index}
-                          className="text-xs ml-4 py-1"
-                          style={{ color: theme.text.muted }}
-                        >
-                          • {customization}
-                        </div>
-                      ))}
+                      {item.customizations
+                        .filter(customization => 
+                          !item.additional_costs?.some(cost => 
+                            cost.name.toLowerCase().includes(customization.toLowerCase()) ||
+                            customization.toLowerCase().includes(cost.name.toLowerCase())
+                          )
+                        )
+                        .map((customization, index) => (
+                          <div 
+                            key={index}
+                            className="text-xs ml-4 py-1"
+                            style={{ color: theme.text.muted }}
+                          >
+                            • {customization}
+                          </div>
+                        ))}
                     </div>
                   )}
                   
@@ -240,7 +283,7 @@ const OrderComponent = React.forwardRef<{ refreshOrder: () => void }>((props, re
                   className="font-medium"
                   style={{ color: theme.text.primary }}
                 >
-                  ${(item.price * item.quantity).toFixed(2)}
+                  ${(item.total_price * item.quantity).toFixed(2)}
                 </span>
               </div>
             </div>

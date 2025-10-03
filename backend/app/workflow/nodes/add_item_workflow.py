@@ -307,6 +307,9 @@ class AddItemWorkflow:
         # Add ingredient modifications with ingredient names
         if resolved_item.modifiers:
             ingredient_mods = []
+            # Store structured modifiers for cost calculation
+            modifications["modifiers"] = resolved_item.modifiers
+            
             for ingredient_id, action in resolved_item.modifiers:
                 # Look up ingredient name
                 logger.info(f"DEBUG: Looking up ingredient_id {ingredient_id} for action '{action}'")

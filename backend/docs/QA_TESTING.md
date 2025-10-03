@@ -34,7 +34,40 @@
 
 ## 🔍 Additional Test Cases Needed
 
-*Add your additional test scenarios here...*
+### **Recent Test Results (January 2025)**
+
+#### **Mixed Valid/Invalid Item Tests**
+- [x] **Order multiple items where 1 is valid and 1 is invalid** - ✅ **PASSED**
+  - **Test:** Customer orders "quantum burger and fake item"
+  - **Result:** System correctly added valid item, ignored invalid item
+  - **Status:** Working as expected - no order update when invalid items present
+
+#### **Multiple Items with Modifications Tests**
+- [x] **Order multiple items each with their own modifications** - ✅ **PASSED**
+  - **Test:** Customer orders "quantum burger with extra cheese and veggie wrap with no onions"
+  - **Result:** Both items added correctly with their respective modifications
+  - **Status:** Working perfectly
+
+#### **Order Completion Tests**
+- [x] **Complete order and check database persistence** - ❌ **FAILED**
+  - **Test:** Customer completes order, check if order is saved to PostgreSQL
+  - **Result:** Order disappears instead of being archived
+  - **Status:** **CRITICAL BUG** - Orders not being saved after completion
+  - **Impact:** No order history, lost revenue tracking
+
+#### **AI Response Quality Tests**
+- [x] **Check AI mentions modifications in confirmations** - ❌ **FAILED**
+  - **Test:** Customer says "quantum burger with extra cheese"
+  - **Result:** AI responds "Added Quantum Cheeseburger" (missing "with extra cheese")
+  - **Status:** **UX BUG** - AI not mentioning modifications in confirmations
+  - **Impact:** Poor user experience, customers can't verify modifications
+
+#### **Item Consolidation Tests**
+- [x] **Order same item multiple times** - ❌ **FAILED**
+  - **Test:** Customer says "I'll take 2 quantum burgers"
+  - **Result:** Shows as 2 separate "Quantum Burger" entries instead of 1 entry with quantity 2
+  - **Status:** **UX BUG** - Duplicate items not consolidated
+  - **Impact:** Cluttered order display, confusing for customers
 
 ---
 

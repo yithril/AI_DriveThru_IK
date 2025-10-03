@@ -23,50 +23,16 @@
 
 ---
 
-## 🐛 Outstanding Issues
+## Outstanding Issues
 
-### **Priority 1: Core Functionality**
-
-*All core functionality bugs have been resolved! 🎉*
-
-### **Priority 2: User Experience**
-
-*All major UX bugs have been resolved! 🎉*
-
-#### **BUG-007: Order Total Persists Between Sessions**
-- **Description:** Order total from previous customer still shows on screen for new customer
-- **Expected:** Screen should be cleared/reset when starting new session
-- **Actual:** Previous order total remains visible
-- **Impact:** Medium - Customer confusion, poor UX
-- **Status:** 🔴 Open
 
 #### **BUG-008: Error Messages Exposed to Customers**
 - **Description:** When system errors occur, technical error messages are shown to customers instead of gentle fallback greetings
 - **Expected:** System should fall back to standard gentle greeting on errors
 - **Actual:** Technical error messages are exposed to customers
 - **Impact:** Medium - Poor UX, jarring customer experience
-- **Status:** 🔴 Open
+- **Status:**  Open
 
-#### **BUG-009: Speech-to-Text Accuracy Issues**
-- **Description:** STT sometimes mishears menu item names (e.g., "meteor chicken" → "meatier chicken")
-- **Expected:** STT should have access to menu context for better accuracy
-- **Actual:** Basic Whisper API call without menu context or prompts
-- **Impact:** Medium - Customer frustration, incorrect orders
-- **Status:** 🔴 Open
-
-#### **BUG-010: Car Controls Active During AI Processing** ✅ **RESOLVED**
-- **Description:** "Next Car" button remains enabled while AI is processing or speaking
-- **Expected:** Car controls should be disabled during AI processing/speaking to prevent state conflicts
-- **Actual:** Users can click "Next Car" while AI is still processing, causing out-of-sync state
-- **Impact:** High - State management issues, potential data corruption
-- **Status:** ✅ **RESOLVED** - Added isAISpeaking check to disable car control buttons during AI processing
-
-#### **BUG-011: Order Persists After New Session** ✅ **RESOLVED**
-- **Description:** When clicking "New Session", the previous order still displays on screen
-- **Expected:** Screen should be cleared and show empty order state for new customer
-- **Actual:** Previous customer's order remains visible in the order component
-- **Impact:** High - Customer confusion, incorrect order display
-- **Status:** ✅ **RESOLVED** - Added useEffect to clear order data when sessionId changes
 
 #### **BUG-012: Impossible Modifications Not Handled**
 - **Description:** System doesn't gracefully handle requests for non-existent ingredients or impossible modifications
@@ -74,7 +40,7 @@
 - **Expected:** System should politely inform customer that ingredient doesn't exist and suggest alternatives
 - **Actual:** Unknown behavior - may fail silently or give confusing error
 - **Impact:** Medium - Customer confusion, poor UX
-- **Status:** 🔴 Open
+- **Status:**  Open
 - **Plan Needed:**
   - Define validation rules for ingredient existence
   - Create friendly error messages for impossible requests
@@ -87,12 +53,64 @@
 - **Expected:** System should clarify which item to modify or ask if they want to add astro nuggets
 - **Actual:** System processes the modification as if the item exists in the order
 - **Impact:** Medium - Customer confusion, incorrect order processing
-- **Status:** 🔴 Open
+- **Status:**  Open
 - **Plan Needed:**
   - Validate that target item exists in current order before modification
   - Handle "instead of" phrasing for non-existent items
   - Clarify intent: modify existing item vs. add new item
   - Provide clear error messages for impossible modifications
+
+#### **BUG-014: Ingredient Additional Costs Not Applied to Order Total** ✅ **RESOLVED**
+- **Description:** When customers add extra ingredients (like "extra cheese"), the additional cost is not included in the order total
+- **Example:** Customer orders "quantum burger with extra cheese" - cheese has additional_cost of $0.50 but total only shows burger price
+- **Expected:** Order total should include base item price + additional costs for extra ingredients
+- **Actual:** Only base menu item price is calculated, ignoring MenuItemIngredient.additional_cost values
+- **Impact:** High - Restaurant loses money on premium ingredient orders
+- **Status:** ✅ **RESOLVED**
+- **Solution Implemented:**
+  - ✅ Modified `_recalculate_order_totals()` in OrderSessionService to include modifier costs
+  - ✅ Added `_calculate_modifier_costs()` method to look up MenuItemIngredient records
+  - ✅ Added logic to sum additional_cost values for "extra" type modifications
+  - ✅ Added modifier costs to base item price before calculating total
+  - ✅ Added comprehensive unit tests for modifier cost calculation
+  - ✅ Tested with various ingredient modifications to ensure accuracy
+
+#### **BUG-015: Duplicate Order Items Not Consolidated**
+- **Description:** When customers order the same item multiple times (e.g., "2 quantum burgers"), they appear as separate line items instead of being consolidated with quantity
+- **Example:** Customer says "I'll take 2 quantum burgers" → shows as 2 separate "Quantum Burger" entries instead of 1 entry with quantity 2
+- **Expected:** Identical items should be consolidated into single line items with combined quantity
+- **Actual:** Each item addition creates a separate line item
+- **Impact:** Medium - Cluttered order display, confusing for customers
+- **Status:** 🔄 **PENDING**
+- **Plan Needed:**
+  - Backend: Add item consolidation logic to group identical items (same menu_item_id + modifications)
+  - Frontend: Display consolidated items with quantity
+  - Consider: Should consolidation happen in backend or frontend?
+
+#### **BUG-016: AI Response Missing Item Modifications**
+- **Description:** When AI confirms adding items, it doesn't mention the modifications (e.g., "extra cheese")
+- **Example:** Customer says "quantum burger with extra cheese" → AI responds "Added Quantum Cheeseburger" (missing "with extra cheese")
+- **Expected:** AI should mention modifications in confirmation: "Added Quantum Cheeseburger with extra cheese"
+- **Actual:** AI only mentions base item name, ignoring customizations
+- **Impact:** Medium - Poor user experience, customers can't verify their modifications were understood
+- **Status:** 🔄 **PENDING**
+- **Plan Needed:**
+  - Update AI response generation to include modification details
+  - Ensure modifications are passed to response generation
+  - Test with various modification types
+
+#### **BUG-017: Order Completion Not Saving to Database**
+- **Description:** When customers complete their order, the order is not being archived/saved to PostgreSQL
+- **Example:** Customer completes order → order disappears instead of being saved for records
+- **Expected:** Completed orders should be saved to database for reporting and records
+- **Actual:** Orders are not persisting after completion
+- **Impact:** High - No order history, lost revenue tracking, no customer records
+- **Status:** 🔄 **PENDING**
+- **Plan Needed:**
+  - Investigate order completion workflow
+  - Check if orders are being marked as completed vs deleted
+  - Implement proper order archiving logic
+  - Add order status tracking (active → completed)
 
 ---
 
@@ -117,6 +135,34 @@
 - Remove item workflow needs debugging
 - Modify item workflow needs debugging
 - May need to add performance timing to these workflows
+
+### **Upselling System**
+- **Future Enhancement:** Implement intelligent upselling recommendations
+- **Features to Add:**
+  - Suggest complementary items based on current order (e.g., "Would you like fries with that burger?")
+  - Recommend premium upgrades (e.g., "Upgrade to large size for just $1 more?")
+  - Suggest popular add-ons (e.g., "Add a drink to complete your meal?")
+  - Seasonal/promotional item suggestions
+- **Implementation Approach:**
+  - Create upselling agent that analyzes current order context
+  - Build recommendation engine based on menu item relationships
+  - Add upselling prompts to order completion workflow
+  - Track upselling success rates and optimize recommendations
+
+### **Intelligent Dietary Analysis System**
+- **Future Enhancement:** AI-powered dietary restriction analysis and recommendations
+- **Features to Add:**
+  - Ingredient-level dietary flags (gluten-free, vegan, vegetarian, keto, sugar-free, etc.)
+  - Dynamic menu item analysis based on modifications
+  - AI responses to dietary questions ("What's gluten-free?", "What's vegan?")
+  - Smart dietary recommendations ("Remove the bun to make it keto")
+  - Allergen and dietary conflict detection
+- **Implementation Approach:**
+  - Add dietary fields to Ingredient model (is_gluten_free, is_vegan, is_keto, etc.)
+  - Create dietary analysis service to evaluate menu items + modifications
+  - Enhance question agent with dietary knowledge
+  - Add dietary filtering to menu search
+  - Implement dynamic dietary status calculation (e.g., "This burger becomes keto if you remove the bun")
 
 ---
 
