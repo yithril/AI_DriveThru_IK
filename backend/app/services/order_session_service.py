@@ -98,23 +98,92 @@ class OrderSessionService:
     
     async def get_order(self, order_id: str) -> Optional[Dict[str, Any]]:
         """
-        Get order data by ID
+        Get order data by ID with consolidated items
         
         Args:
             order_id: Order ID to retrieve
             
         Returns:
-            dict: Order data if exists, None otherwise
+            dict: Order data with consolidated items if exists, None otherwise
         """
         if not await self.is_redis_available():
             logger.error("Redis not available - cannot get order")
             return None
         
         try:
-            return await self.redis.get_json(f"order:{order_id}")
+            order_data = await self.redis.get_json(f"order:{order_id}")
+            if order_data and "items" in order_data:
+                # Consolidate identical items
+                order_data["items"] = self._consolidate_order_items(order_data["items"])
+            return order_data
         except Exception as e:
             logger.error(f"Error getting order {order_id}: {e}")
             return None
+    
+    def _consolidate_order_items(self, items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Consolidate identical order items by menu_item_id and modifications.
+        
+        Items are considered identical if they have:
+        - Same menu_item_id
+        - Same modifications (ingredient_modifications, special_instructions, size)
+        
+        Args:
+            items: List of order items to consolidate
+            
+        Returns:
+            List of consolidated order items
+        """
+        if not items:
+            return items
+        
+        # Group items by consolidation key
+        consolidated_groups = {}
+        
+        for item in items:
+            # Create a consolidation key based on menu_item_id and modifications
+            consolidation_key = self._create_consolidation_key(item)
+            
+            if consolidation_key in consolidated_groups:
+                # Add to existing group
+                consolidated_groups[consolidation_key]["quantity"] += item.get("quantity", 1)
+            else:
+                # Create new group
+                consolidated_groups[consolidation_key] = item.copy()
+        
+        # Convert back to list
+        consolidated_items = list(consolidated_groups.values())
+        
+        logger.info(f"Consolidated {len(items)} items into {len(consolidated_items)} unique items")
+        return consolidated_items
+    
+    def _create_consolidation_key(self, item: Dict[str, Any]) -> str:
+        """
+        Create a unique key for item consolidation.
+        
+        Items with the same key will be consolidated together.
+        
+        Args:
+            item: Order item dictionary
+            
+        Returns:
+            str: Consolidation key
+        """
+        menu_item_id = item.get("menu_item_id", "unknown")
+        
+        # Get modifications for comparison
+        modifications = item.get("modifications", {})
+        ingredient_mods = modifications.get("ingredient_modifications", "")
+        special_instructions = item.get("special_instructions", "")
+        size = item.get("size", "regular")
+        
+        # Create key from menu_item_id + modifications
+        # Sort ingredient modifications to ensure consistent ordering
+        sorted_mods = sorted(ingredient_mods.split("; ")) if ingredient_mods else []
+        mods_key = "; ".join(sorted_mods)
+        
+        consolidation_key = f"{menu_item_id}|{mods_key}|{special_instructions}|{size}"
+        return consolidation_key
     
     async def get_session_order(self, session_id: str) -> Optional[Dict[str, Any]]:
         """
@@ -467,7 +536,8 @@ class OrderSessionService:
                 return False
             
             # Convert Redis order data to PostgreSQL format
-            from app.dto.order_dto import OrderCreateDto, OrderItemCreateDto
+            from app.dto.order_dto import OrderCreateDto
+            from app.dto.order_item_dto import OrderItemCreateDto
             
             # Create main order
             order_create_dto = OrderCreateDto(
@@ -489,7 +559,6 @@ class OrderSessionService:
             
             # Create order items using OrderItemService
             from app.services.order_item_service import OrderItemService
-            from app.dto.order_item_dto import OrderItemCreateDto
             from app.services.menu_item_service import MenuItemService
             
             order_item_service = OrderItemService()
@@ -509,9 +578,6 @@ class OrderSessionService:
                 )
                 
                 await order_item_service.create(order_item_dto)
-            
-            # Calculate totals in PostgreSQL
-            await postgres_order.calculate_totals()
             
             logger.info(f"Successfully archived order {order_id} to PostgreSQL as order {postgres_order.id}")
             return True

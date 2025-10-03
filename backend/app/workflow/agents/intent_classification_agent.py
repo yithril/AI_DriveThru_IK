@@ -66,7 +66,6 @@ async def intent_classification_agent(
         result = await llm.ainvoke(prompt)
         
         logger.info(f"Intent classified: {result.intent} (confidence: {result.confidence})")
-        logger.info(f"Input cleansed: '{user_input}' → '{result.cleansed_input}'")
         
         return result
         
@@ -76,6 +75,5 @@ async def intent_classification_agent(
         return IntentClassificationResult(
             intent=IntentType.UNKNOWN,
             confidence=0.1,
-            cleansed_input=user_input or "unknown input",
             reasoning=f"Classification failed: {str(e)}"
         )

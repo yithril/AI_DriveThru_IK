@@ -344,21 +344,67 @@ class AddItemWorkflow:
         
         return "I need more information to help you. Could you please clarify?"
     
+    def _build_modifications_text(self, item) -> str:
+        """Build modifications text for display in success message"""
+        modifications_parts = []
+        
+        # Add ingredient modifications using the normalized ingredient names
+        if hasattr(item, 'ingredient_normalization_details') and item.ingredient_normalization_details:
+            for detail in item.ingredient_normalization_details:
+                if detail.is_resolved and detail.normalized_ingredient_name:
+                    # Use the normalized ingredient name for display
+                    modifications_parts.append(f"{detail.action} {detail.normalized_ingredient_name}")
+        
+        # Add special instructions
+        if hasattr(item, 'special_instructions') and item.special_instructions:
+            modifications_parts.append(item.special_instructions)
+        
+        if modifications_parts:
+            return f" with {', '.join(modifications_parts)}"
+        else:
+            return ""
+    
+    def _build_single_item_text(self, item) -> str:
+        """Build natural language text for a single item"""
+        # Handle quantity with natural language
+        if item.quantity == 1:
+            quantity_text = "a "
+        elif item.quantity == 2:
+            quantity_text = "two "
+        else:
+            quantity_text = f"{item.quantity} "
+        
+        # Handle size
+        size_text = f" {item.size}" if item.size and item.size != "regular" else ""
+        
+        # Get modifications
+        modifications_text = self._build_modifications_text(item)
+        
+        return f"{quantity_text}{item.resolved_menu_item_name}{size_text}{modifications_text}"
+    
     def _build_success_message(self, added_items: List) -> str:
         """Build success message for added items"""
+        # If more than 4 items, use generic message to avoid verbosity
+        if len(added_items) > 4:
+            return "I've added those items to your order! Would you like anything else?"
+        
         if len(added_items) == 1:
             item = added_items[0]
-            quantity_text = f"{item.quantity} " if item.quantity > 1 else ""
-            size_text = f" ({item.size})" if item.size and item.size != "regular" else ""
-            return f"Added {quantity_text}{item.resolved_menu_item_name}{size_text} to your order! Would you like anything else?"
+            item_text = self._build_single_item_text(item)
+            return f"I've added {item_text} to your order! Would you like anything else?"
         else:
-            item_names = []
+            item_texts = []
             for item in added_items:
-                quantity_text = f"{item.quantity} " if item.quantity > 1 else ""
-                size_text = f" ({item.size})" if item.size and item.size != "regular" else ""
-                item_names.append(f"{quantity_text}{item.resolved_menu_item_name}{size_text}")
+                item_texts.append(self._build_single_item_text(item))
             
-            return f"Added {', '.join(item_names)} to your order! Would you like anything else?"
+            # Build natural list with proper conjunctions
+            if len(item_texts) == 2:
+                natural_list = f"{item_texts[0]} and {item_texts[1]}"
+            else:
+                # Use Oxford comma for 3+ items
+                natural_list = f"{', '.join(item_texts[:-1])}, and {item_texts[-1]}"
+            
+            return f"I've added {natural_list} to your order! Would you like anything else?"
     
     def _build_partial_success_message(self, added_items: List, failed_items: List) -> str:
         """Build message for partial success"""

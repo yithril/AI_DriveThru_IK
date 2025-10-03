@@ -65,6 +65,9 @@ async def import_restaurant(data):
         primary_color=data['primary_color'],
         secondary_color=data['secondary_color'],
         logo_url=data.get('logo_url'),
+        phone=data.get('phone'),
+        hours=data.get('hours'),
+        address=data.get('address'),
         is_active=data.get('is_active', True)
     )
     

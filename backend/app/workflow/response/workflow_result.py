@@ -14,12 +14,14 @@ from app.constants.audio_phrases import AudioPhraseType
 
 class WorkflowType(str, Enum):
     """Supported workflow types"""
+    PREPROCESSING = "preprocessing"
     MODIFY_ITEM = "modify_item"
     ADD_ITEM = "add_item"
     REMOVE_ITEM = "remove_item"
     CLEAR_ORDER = "clear_order"
     QUESTION_ANSWER = "question_answer"
     CONFIRM_ORDER = "confirm_order"
+    CLARIFICATION = "clarification"
     ADD_ITEM_CLARIFICATION = "add_item_clarification"
     MODIFY_ITEM_CLARIFICATION = "modify_item_clarification"
     REMOVE_ITEM_CLARIFICATION = "remove_item_clarification"
@@ -62,6 +64,10 @@ class WorkflowResult(BaseModel):
     # Metadata
     execution_time_ms: Optional[int] = Field(None, description="Workflow execution time in milliseconds")
     confidence_score: Optional[float] = Field(None, description="Confidence in the result (0.0 to 1.0)")
+    
+    # Preprocessing fields
+    processed_input: Optional[str] = Field(None, description="Processed input after noise filtering and context resolution")
+    intent: Optional[Any] = Field(None, description="Classified intent from preprocessing")
     
     def is_voice_ready(self) -> bool:
         """Check if this result is ready for voice generation"""

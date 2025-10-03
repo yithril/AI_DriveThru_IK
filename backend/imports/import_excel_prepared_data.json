@@ -6,6 +6,9 @@
       "secondary_color": "#12141A",
       "logo_url": "logo.png",
       "description": "The ultimate space-themed burger experience",
+      "phone": "555-QUANTUM",
+      "hours": "7 AM to 11 PM daily",
+      "address": "123 Quantum Drive, Tech City, TC 12345",
       "is_active": true
     }
   ],

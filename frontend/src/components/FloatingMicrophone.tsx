@@ -13,10 +13,9 @@ interface FloatingMicrophoneProps {
 export default function FloatingMicrophone({ orderComponentRef }: FloatingMicrophoneProps) {
   const { theme } = useTheme();
   const { sessionId, restaurantId } = useSession();
-  const { isAISpeaking, setAISpeaking, setUserSpeaking } = useSpeaker();
+  const { isAISpeaking, isAPIProcessing, setAISpeaking, setUserSpeaking, setAPIProcessing } = useSpeaker();
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [responseText, setResponseText] = useState('');
@@ -41,7 +40,7 @@ export default function FloatingMicrophone({ orderComponentRef }: FloatingMicrop
   };
 
   const startRecording = async () => {
-    if (!sessionId || !restaurantId || hasPermission === false || isAISpeaking || isProcessing) return;
+    if (!sessionId || !restaurantId || hasPermission === false || isAISpeaking || isAPIProcessing) return;
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -60,7 +59,8 @@ export default function FloatingMicrophone({ orderComponentRef }: FloatingMicrop
         stream.getTracks().forEach(track => track.stop());
         setIsRecording(false);
         setUserSpeaking(false);
-        setIsProcessing(true);
+        console.log('🔍 [DEBUG] FloatingMicrophone - setting isAPIProcessing to true');
+        setAPIProcessing(true);
 
         if (timerRef.current) {
           clearInterval(timerRef.current);
@@ -92,7 +92,8 @@ export default function FloatingMicrophone({ orderComponentRef }: FloatingMicrop
           console.error('Error processing voice order:', error);
           setResponseText('Error processing voice order.');
         } finally {
-          setIsProcessing(false);
+          console.log('🔍 [DEBUG] FloatingMicrophone - setting isAPIProcessing to false');
+          setAPIProcessing(false);
         }
       };
 
@@ -127,7 +128,7 @@ export default function FloatingMicrophone({ orderComponentRef }: FloatingMicrop
     if (!sessionId || !restaurantId) return theme.text.muted;
     if (hasPermission === false) return '#ef4444';
     if (isRecording) return '#ef4444';
-    if (isProcessing) return '#f59e0b';
+    if (isAPIProcessing) return '#f59e0b';
     if (isAISpeaking) return '#10b981';
     return theme.primary;
   };
@@ -142,20 +143,20 @@ export default function FloatingMicrophone({ orderComponentRef }: FloatingMicrop
       {/* Floating Microphone Button */}
       <button
         onClick={isRecording ? stopRecording : startRecording}
-        disabled={isAISpeaking || isProcessing || hasPermission === false || !sessionId || !restaurantId}
+        disabled={isAISpeaking || isAPIProcessing || hasPermission === false || !sessionId || !restaurantId}
         className={`w-16 h-16 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center ${
           isRecording ? 'animate-pulse scale-110' : 'hover:scale-105'
-        } ${(isAISpeaking || isProcessing || hasPermission === false || !sessionId || !restaurantId) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+        } ${(isAISpeaking || isAPIProcessing || hasPermission === false || !sessionId || !restaurantId) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
         style={{
           backgroundColor: isRecording ? '#ef4444' : 
                           isAISpeaking ? '#10b981' :
-                          isProcessing ? '#f59e0b' : theme.primary,
+                          isAPIProcessing ? '#f59e0b' : theme.primary,
           background: isRecording ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' :
                       isAISpeaking ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' :
-                      isProcessing ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : theme.primary,
+                      isAPIProcessing ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : theme.primary,
           boxShadow: isRecording ? '0 0 20px rgba(239, 68, 68, 0.5)' : 
                       isAISpeaking ? '0 0 20px rgba(16, 185, 129, 0.5)' :
-                      isProcessing ? '0 0 20px rgba(245, 158, 11, 0.5)' : '0 4px 12px rgba(0, 0, 0, 0.15)'
+                      isAPIProcessing ? '0 0 20px rgba(245, 158, 11, 0.5)' : '0 4px 12px rgba(0, 0, 0, 0.15)'
         }}
       >
         {/* Microphone Icon */}
@@ -172,7 +173,7 @@ export default function FloatingMicrophone({ orderComponentRef }: FloatingMicrop
             <>
               <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
             </>
-          ) : isProcessing ? (
+          ) : isAPIProcessing ? (
             // Processing - loading spinner
             <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="31.416" strokeDashoffset="31.416">
               <animate attributeName="stroke-dasharray" dur="2s" values="0 31.416;15.708 15.708;0 31.416" repeatCount="indefinite"/>

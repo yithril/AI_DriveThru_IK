@@ -16,9 +16,9 @@ interface VoiceOrderComponentProps {
 export default function VoiceOrderComponent({ onOrderReceived, onOrderChanged }: VoiceOrderComponentProps) {
   const { theme } = useTheme();
   const { sessionId, restaurantId, createSession, error: sessionError } = useSession();
-  const { isAISpeaking, isUserSpeaking, setAISpeaking, setUserSpeaking } = useSpeaker();
+  const { isAISpeaking, isUserSpeaking, isAPIProcessing, setAISpeaking, setUserSpeaking, setAPIProcessing } = useSpeaker();
   const [orderText, setOrderText] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
+  // Remove local isProcessing state - now using shared isAPIProcessing from SpeakerContext
   const [isListening, setIsListening] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [responseText, setResponseText] = useState('');
@@ -26,12 +26,15 @@ export default function VoiceOrderComponent({ onOrderReceived, onOrderChanged }:
   const [error, setError] = useState<string | null>(null);
 
   const handleRecordingComplete = async (audioBlob: Blob) => {
+    console.log('🔍 [DEBUG] handleRecordingComplete called with audioBlob:', audioBlob);
+    
     if (!sessionId || !restaurantId) {
       console.error('No active session. Please create a session first.');
       return;
     }
 
-    setIsProcessing(true);
+    console.log('🔍 [DEBUG] Starting API processing - setting isAPIProcessing to true');
+    setAPIProcessing(true);
     setError(null);
     
     try {
@@ -66,7 +69,8 @@ export default function VoiceOrderComponent({ onOrderReceived, onOrderChanged }:
       console.error('Error processing voice order:', error);
       setError(error instanceof Error ? error.message : 'Failed to process audio');
     } finally {
-      setIsProcessing(false);
+      console.log('🔍 [DEBUG] API processing complete - setting isAPIProcessing to false');
+      setAPIProcessing(false);
     }
   };
 
@@ -146,7 +150,7 @@ export default function VoiceOrderComponent({ onOrderReceived, onOrderChanged }:
           onRecordingComplete={handleRecordingComplete}
           onRecordingStart={handleRecordingStart}
           onRecordingStop={handleRecordingStop}
-          disabled={isAISpeaking || isProcessing}
+          disabled={isAISpeaking || isAPIProcessing}
         />
       </div>
 
@@ -160,7 +164,7 @@ export default function VoiceOrderComponent({ onOrderReceived, onOrderChanged }:
       )}
 
       {/* Processing Status */}
-      {isProcessing && (
+      {isAPIProcessing && (
         <div className="text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg" style={{ backgroundColor: theme.surface }}>
             <div className="animate-spin rounded-full h-4 w-4 border-2 border-transparent border-t-current" style={{ color: theme.button.primary }}></div>

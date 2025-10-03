@@ -13,13 +13,14 @@ import base64
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 
-from app.workflow.agents.intent_classification_agent import intent_classification_agent
+from app.workflow.nodes.preprocessing_workflow import PreprocessingWorkflow
 from app.workflow.nodes.add_item_workflow import AddItemWorkflow
 from app.workflow.nodes.modify_item_workflow import ModifyItemWorkflow
 from app.workflow.nodes.remove_item_workflow import RemoveItemWorkflow
 from app.workflow.nodes.clear_order_workflow import ClearOrderWorkflow
 from app.workflow.nodes.confirm_order_workflow import ConfirmOrderWorkflow
 from app.workflow.nodes.question_answer_workflow import QuestionAnswerWorkflow
+from app.workflow.nodes.clarification_workflow import ClarificationWorkflow
 from app.services.voice.voice_service import VoiceService
 from app.services.order_session_service import OrderSessionService
 from app.services.session_service import SessionService
@@ -78,6 +79,9 @@ class WorkflowOrchestrator:
         self.ingredient_service = ingredient_service
         self.restaurant_service = restaurant_service
         
+        # Initialize preprocessing workflow
+        self.preprocessing_workflow = PreprocessingWorkflow()
+        
         # Initialize workflows
         self._initialize_workflows()
     
@@ -112,6 +116,8 @@ class WorkflowOrchestrator:
             ingredient_service=self.ingredient_service,
             restaurant_service=self.restaurant_service
         )
+        
+        self.clarification_workflow = ClarificationWorkflow()
     
     async def process_voice_input(
         self,
@@ -150,19 +156,37 @@ class WorkflowOrchestrator:
             conversation_history = await self._get_conversation_history(session_id)
             current_order = await self._get_current_order(session_id)
             
-            # Step 3: Intent Classification
-            intent_result = await intent_classification_agent(
-                user_input=text_input,
+            # Step 3: Preprocessing (noise filter + intent classification + context resolution)
+            preprocessing_result = await self.preprocessing_workflow.execute(
+                text_input=text_input,
+                session_id=session_id,
                 conversation_history=conversation_history,
-                order_items=current_order.get("items", []) if current_order else []
+                command_history=conversation_history,  # Use conversation as command history
+                current_order=current_order
             )
             
-            logger.info(f"Intent classified: {intent_result.intent} (confidence: {intent_result.confidence})")
+            # Check if clarification is needed
+            if preprocessing_result.needs_clarification:
+                # Generate voice response for clarification
+                audio_url = await self._generate_voice_response(
+                    workflow_result=preprocessing_result,
+                    restaurant_id=restaurant_id
+                )
+                
+                return VoiceProcessingResult(
+                    success=preprocessing_result.success,
+                    message=preprocessing_result.message,
+                    audio_url=audio_url,
+                    order_updated=preprocessing_result.order_updated,
+                    validation_errors=preprocessing_result.validation_errors,
+                    workflow_type=preprocessing_result.workflow_type.value,
+                    confidence_score=None
+                )
             
             # Step 4: Route to appropriate workflow
             workflow_result = await self._execute_workflow(
-                intent=intent_result.intent,
-                user_input=intent_result.cleansed_input,
+                intent=preprocessing_result.intent,
+                user_input=preprocessing_result.processed_input,
                 session_id=session_id,
                 restaurant_id=restaurant_id,
                 conversation_history=conversation_history,
@@ -189,7 +213,7 @@ class WorkflowOrchestrator:
                 order_updated=workflow_result.order_updated,
                 validation_errors=workflow_result.validation_errors,
                 workflow_type=workflow_result.workflow_type.value,
-                confidence_score=intent_result.confidence
+                confidence_score=workflow_result.confidence_score
             )
             
         except Exception as e:
@@ -367,6 +391,17 @@ class WorkflowOrchestrator:
             )
         except Exception as e:
             logger.error(f"Error audio generation failed: {e}")
+            return None
+    
+    async def _generate_voice_response_from_text(self, text: str, restaurant_id: int) -> Optional[str]:
+        """Generate voice response from text"""
+        try:
+            return await self.voice_service.generate_audio(
+                text=text,
+                restaurant_id=restaurant_id
+            )
+        except Exception as e:
+            logger.error(f"Voice generation from text failed: {e}")
             return None
     
     async def _get_conversation_history(self, session_id: str) -> List[Dict[str, Any]]:

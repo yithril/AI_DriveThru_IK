@@ -32,7 +32,7 @@ REQUIRED JSON FORMAT:
 {{
   "intent": "INTENT_TYPE",
   "confidence": 0.95,
-  "cleansed_input": "cleaned version of user input"
+  "reasoning": "Brief explanation for why this intent was chosen"
 }}
 
 INTENT TYPES:
@@ -78,17 +78,7 @@ EDGE CASE GUIDANCE:
 - "Is the shake large?" → QUESTION (not MODIFY_ITEM)
 
 NOISE FILTERING:
-Ignore non-food chatter and keep only order-relevant content.
-Example: "I'd like two burgers... Shawn stop it... with no pickles" → "I'd like two burgers with no pickles"
-
-CLEANSED INPUT RULES:
-- Remove background chatter and fillers; keep all item/size/modifier/quantity info
-- Preserve the user’s meaning and any constraints
-- If input is already clean, leave unchanged
-Examples:
-- "I'd like a burger... um... with no pickles" → "I'd like a burger with no pickles"
-- "Two Big Macs please... wait, make that three" → "Three Big Macs please"
-- "Can I get fries? Thanks!" → "Can I get fries?"
+Ignore non-food chatter and focus on order-relevant content for intent classification.
 
 CONFIDENCE SCORING:
 - 0.9–1.0: Very clear intent
@@ -98,24 +88,24 @@ CONFIDENCE SCORING:
 
 EXAMPLES:
 - "I'd like a Big Mac and fries"
-  → {{"intent": "ADD_ITEM", "confidence": 0.95, "cleansed_input": "I'd like a Big Mac and fries"}}
+  → {{"intent": "ADD_ITEM", "confidence": 0.95, "reasoning": "Clear request to add food items"}}
 
 - (Order items contain "quantum burger")
   "I'd like the quantum burger to have no lettuce"
-  → {{"intent": "MODIFY_ITEM", "confidence": 0.92, "cleansed_input": "I'd like the quantum burger to have no lettuce"}}
+  → {{"intent": "MODIFY_ITEM", "confidence": 0.92, "reasoning": "Definite reference to existing quantum burger with modification request"}}
 
 - (Order items do NOT contain "quantum burger")
   "I'd like the quantum burger to have no lettuce"
-  → {{"intent": "ADD_ITEM", "confidence": 0.9, "cleansed_input": "I'd like the quantum burger with no lettuce"}}
+  → {{"intent": "ADD_ITEM", "confidence": 0.9, "reasoning": "No existing quantum burger found, treating as new item with modifiers"}}
 
 - "Remove my fries"
-  → {{"intent": "REMOVE_ITEM", "confidence": 0.9, "cleansed_input": "Remove my fries"}}
+  → {{"intent": "REMOVE_ITEM", "confidence": 0.9, "reasoning": "Clear request to remove specific item"}}
 
 - "That's all"
-  → {{"intent": "CONFIRM_ORDER", "confidence": 0.95, "cleansed_input": "That's all"}}
+  → {{"intent": "CONFIRM_ORDER", "confidence": 0.95, "reasoning": "Clear signal that ordering is complete"}}
 
 - "How much is a burger?"
-  → {{"intent": "QUESTION", "confidence": 0.9, "cleansed_input": "How much is a burger?"}}
+  → {{"intent": "QUESTION", "confidence": 0.9, "reasoning": "Question about menu item pricing"}}
 
 Return ONLY the JSON response.
 """

@@ -55,6 +55,7 @@ export default function VoiceRecorder({
 
       mediaRecorder.onstop = () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+        console.log('🔍 [DEBUG] VoiceRecorder - onstop called, calling onRecordingComplete');
         onRecordingComplete(audioBlob);
         stream.getTracks().forEach(track => track.stop());
       };

@@ -17,20 +17,10 @@ class IntentClassificationResult(BaseModel):
     confidence: float = Field(
         ..., ge=0.0, le=1.0, description="Confidence in the classification (0.0 to 1.0)"
     )
-    cleansed_input: str = Field(
-        ..., min_length=1, description="Cleaned/normalized version of user input"
-    )
     reasoning: Optional[str] = Field(
         None, description="Optional explanation for why this intent was chosen"
     )
 
-    @field_validator('cleansed_input')
-    @classmethod
-    def validate_cleansed_input(cls, v):
-        """Ensure cleansed input is not empty"""
-        if not v or not v.strip():
-            raise ValueError("Cleansed input cannot be empty")
-        return v.strip()
 
     @field_validator('confidence')
     @classmethod

@@ -19,7 +19,7 @@ interface NewCarResponse {
 
 export default function CarControlComponent() {
   const { theme } = useTheme();
-  const { isAISpeaking, setAISpeaking } = useSpeaker();
+  const { isAISpeaking, isAPIProcessing, setAISpeaking } = useSpeaker();
   const { restaurant } = useData();
   const { sessionId, createSession, clearSession, greetingAudioUrl } = useSession();
   const [currentCar, setCurrentCar] = useState<number | null>(null);
@@ -49,6 +49,7 @@ export default function CarControlComponent() {
 
   const handleCarArrived = async () => {
     if (currentCar) {
+      console.log('🔍 [DEBUG] Next Customer clicked - isAPIProcessing:', isAPIProcessing, 'isAISpeaking:', isAISpeaking, 'isProcessing:', isProcessing);
       setIsProcessing(true);
       try {
         // Use the SessionContext to clear the session
@@ -84,6 +85,9 @@ export default function CarControlComponent() {
     setError(`Audio playback failed: ${error}`);
     setShouldPlayGreeting(false); // Stop trying to play on error
   };
+
+  // Debug logging for button state
+  console.log('🔍 [DEBUG] CarControlComponent render - isAPIProcessing:', isAPIProcessing, 'isAISpeaking:', isAISpeaking, 'isProcessing:', isProcessing);
 
   return (
     <div className="space-y-4">
@@ -142,52 +146,52 @@ export default function CarControlComponent() {
             </div>
             <button
               onClick={handleCarArrived}
-              disabled={isProcessing || isAISpeaking}
+              disabled={isProcessing || isAISpeaking || isAPIProcessing}
               className="text-white font-medium py-2 px-4 rounded-lg transition-all duration-300 flex items-center gap-2 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
               style={{ 
-                background: (isProcessing || isAISpeaking) ? theme.button.secondary : theme.button.primary,
+                background: (isProcessing || isAISpeaking || isAPIProcessing) ? theme.button.secondary : theme.button.primary,
               }}
               onMouseEnter={(e) => {
-                if (!isProcessing && !isAISpeaking) {
+                if (!isProcessing && !isAISpeaking && !isAPIProcessing) {
                   e.currentTarget.style.background = theme.button.primaryHover;
                   e.currentTarget.style.transform = 'translateY(-1px)';
                 }
               }}
               onMouseLeave={(e) => {
-                if (!isProcessing && !isAISpeaking) {
+                if (!isProcessing && !isAISpeaking && !isAPIProcessing) {
                   e.currentTarget.style.background = theme.button.primary;
                   e.currentTarget.style.transform = 'translateY(0)';
                 }
               }}
             >
               {isProcessing && <LoadingSpinner size="sm" color="text-white" />}
-              {isProcessing ? 'Processing...' : isAISpeaking ? 'AI Speaking...' : 'Next Customer'}
+              {isProcessing ? 'Processing...' : isAISpeaking ? 'AI Speaking...' : isAPIProcessing ? 'Processing...' : 'Next Customer'}
             </button>
           </div>
         </div>
       ) : (
         <button
           onClick={handleNewCar}
-          disabled={isProcessing || isAISpeaking}
+          disabled={isProcessing || isAISpeaking || isAPIProcessing}
           className="w-full py-3 px-4 rounded-lg font-medium transition-all duration-300 text-white shadow-lg hover:shadow-xl disabled:cursor-not-allowed flex items-center justify-center gap-2"
           style={{ 
-            background: (isProcessing || isAISpeaking) ? theme.button.secondary : theme.button.primary 
+            background: (isProcessing || isAISpeaking || isAPIProcessing) ? theme.button.secondary : theme.button.primary 
           }}
           onMouseEnter={(e) => {
-            if (!isProcessing && !isAISpeaking) {
+            if (!isProcessing && !isAISpeaking && !isAPIProcessing) {
               e.currentTarget.style.background = theme.button.primaryHover;
               e.currentTarget.style.transform = 'translateY(-2px)';
             }
           }}
           onMouseLeave={(e) => {
-            if (!isProcessing && !isAISpeaking) {
+            if (!isProcessing && !isAISpeaking && !isAPIProcessing) {
               e.currentTarget.style.background = theme.button.primary;
               e.currentTarget.style.transform = 'translateY(0)';
             }
           }}
         >
           {isProcessing && <LoadingSpinner size="sm" color="text-white" />}
-          {isProcessing ? 'Creating Session...' : isAISpeaking ? 'AI Speaking...' : 'New Car'}
+          {isProcessing ? 'Creating Session...' : isAISpeaking ? 'AI Speaking...' : isAPIProcessing ? 'Processing...' : 'New Car'}
         </button>
       )}
       
