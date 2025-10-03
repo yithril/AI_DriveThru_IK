@@ -2,7 +2,7 @@
 
 An intelligent drive-thru ordering system powered by multiple AI agents that understand natural language, process orders, and manage complex customer interactions in real-time.
 
-![System Architecture](system-design.png)
+![System Architecture](AI-Drivethrough-SD.png)
 
 ## Overview
 
