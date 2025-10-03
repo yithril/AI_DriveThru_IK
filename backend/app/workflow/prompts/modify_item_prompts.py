@@ -6,13 +6,14 @@ Handles parsing user modification requests and identifying target items.
 
 from typing import Dict, Any, List
 from langchain_core.prompts import PromptTemplate
+from app.dto.conversation_dto import ConversationHistory
 
 
 def get_modify_item_prompt(
     user_input: str,
     current_order: List[Dict[str, Any]],
-    conversation_history: List[Dict[str, Any]],
-    command_history: List[Dict[str, Any]]
+    conversation_history: ConversationHistory,
+    command_history: ConversationHistory
 ) -> str:
     """
     Build the prompt for LLM item modification parsing
@@ -176,46 +177,34 @@ def _format_order_context(current_order: List[Dict[str, Any]]) -> str:
     return "\n".join(items)
 
 
-def _format_conversation_context(conversation_history: List[Dict[str, Any]]) -> str:
+def _format_conversation_context(conversation_history: ConversationHistory) -> str:
     """Format conversation history for context"""
-    if not conversation_history:
+    if conversation_history.is_empty():
         return "No conversation history"
     
     # Get last 3 conversation turns
-    recent_history = conversation_history[-3:] if len(conversation_history) > 3 else conversation_history
+    recent_history = conversation_history.get_recent_entries(3)
     
     turns = []
-    for turn in recent_history:
-        user_msg = turn.get('user', '')
-        ai_msg = turn.get('ai', '')
-        turn_str = f"User: {user_msg}"
-        if ai_msg:
-            turn_str += f"\nAI: {ai_msg}"
+    for entry in recent_history:
+        turn_str = f"{entry.role.value}: {entry.content}"
         turns.append(turn_str)
     
     return "\n\n".join(turns)
 
 
-def _format_command_context(command_history: List[Dict[str, Any]]) -> str:
+def _format_command_context(command_history: ConversationHistory) -> str:
     """Format command history for context"""
-    if not command_history:
+    if command_history.is_empty():
         return "No command history"
     
     # Get last 5 commands
-    recent_commands = command_history[-5:] if len(command_history) > 5 else command_history
+    recent_commands = command_history.get_recent_entries(5)
     
     commands = []
-    for cmd in recent_commands:
-        cmd_type = cmd.get('command_type', 'unknown')
-        item_name = cmd.get('item_name', '')
-        quantity = cmd.get('quantity', 1)
-        status = cmd.get('status', 'unknown')
-        
-        cmd_str = f"{cmd_type}: {item_name}"
-        if quantity > 1:
-            cmd_str += f" (qty: {quantity})"
-        cmd_str += f" - {status}"
-        
-        commands.append(cmd_str)
+    for entry in recent_commands:
+        # For now, just show the content since command history is the same as conversation history
+        cmd_text = f"{entry.role.value}: {entry.content}"
+        commands.append(cmd_text)
     
     return "\n".join(commands)

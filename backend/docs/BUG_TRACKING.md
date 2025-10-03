@@ -270,3 +270,16 @@
   - Consider confirmation dialog: "Customer drove off - archive order?"
 - **Priority:** Low - Other pressing issues take precedence
 - **Status:** 📋 **PLANNED**
+
+#### **FEATURE-002: Item Replacement Workflow**
+- **Description:** Handle "I wanted X instead" scenarios where customers want to replace one item with another
+- **Business Case:** Common drive-thru scenario - "Actually, I wanted the Neon Double Burger" (replacing Quantum Cheeseburger)
+- **Current Gap:** Modify Item Agent only handles modifications (quantity, size, ingredients) not item replacement
+- **Implementation Plan:**
+  - Create new `ReplaceItemWorkflow` 
+  - Add intent classification for "REPLACE_ITEM" intent
+  - Create `ReplaceItemAgent` to parse replacement requests
+  - Logic: Remove old item + Add new item in single transaction
+  - Handle patterns: "I wanted X instead", "Change that to X", "Actually, I wanted X"
+- **Priority:** Medium - Common customer scenario
+- **Status:** 📋 **PLANNED**

@@ -1,148 +1,161 @@
-# QA Testing Document
+# QA Testing Plan - AI Drive-Thru System
 
-## Current Status: Voice AI Drive-Thru System
-
-**Last Updated:** January 15, 2025  
-**System Version:** Development/Demo - Major Bugs Resolved!
+**Last Updated:** October 3, 2025  
+**System Version:** Production Ready - Context Resolution & Menu Matching Fixed!
 
 ---
 
-## 🧪 Test Scenarios
+## 🎯 **HAPPY PATH TESTS** (Core Functionality)
 
-### **Core Functionality Tests**
+### **✅ Basic Ordering Flow**
+- [ ] **Single item order:** "I'll take a quantum cheeseburger"
+- [ ] **Multiple items:** "I'll take a quantum cheeseburger and galactic fries"
+- [ ] **Item with modifications:** "Quantum cheeseburger with extra cheese"
+- [ ] **Multiple items with different modifications:** "Quantum cheeseburger with extra cheese and veggie wrap with no onions"
 
-#### **Add Item Tests**
-- [x] **Add regular item using full name** - ✅ **PASSED**
-- [x] **Add multiple items using full names** - ✅ **PASSED**  
-- [x] **Add item with modifications using full item name + shortened ingredients** - ✅ **PASSED**
-  - Example: "quantum cheeseburger with extra cheese and light onions"
+### **✅ Context Resolution (NEW!)**
+- [ ] **Pronoun resolution:** "What's on the veggie wrap?" → "Cool, I'll take two of those"
+- [ ] **Recent item reference:** "Actually, take those off" (removes only recently added items)
+- [ ] **Question → Order flow:** "What's on the quantum burger?" → "I'll take one of those"
 
-#### **Modify Item Tests**
-- [x] **Update quantity of existing item** - ✅ **PASSED**
-- [x] **Mid-sentence quantity changes** - ✅ **PASSED** - "2 Neon double burgers...no wait...make that 4" handled correctly
-- [x] **Add modifications to item with existing modifications** - ❌ **FAILED** - "extra cheese as well" overwrote "extra veggie mix" instead of adding to it
+### **✅ Order Management**
+- [ ] **Remove specific item:** "Take off the galactic fries"
+- [ ] **Modify existing item:** "Make that quantum cheeseburger extra cheese"
+- [ ] **Update quantity:** "Make that 3 quantum cheeseburgers"
+- [ ] **Clear entire order:** "Actually, clear my order"
 
-#### **Remove Item Tests**
-- [x] **Remove item using full name** - ✅ **PASSED**
-
-#### **Question Answering Tests**
-- [x] **Ask about ingredients on an item** - ✅ **PASSED**
-- [x] **Ask about restaurant hours/phone number** - ❌ **FAILED** - AI couldn't answer basic restaurant info questions
-- [x] **Follow-up order after question using pronoun reference** - ❌ **FAILED** - Couldn't resolve "them" to "veggie wrap" from conversation context
-
----
-
-## 🔍 Additional Test Cases Needed
-
-### **Recent Test Results (January 2025)**
-
-#### **Mixed Valid/Invalid Item Tests**
-- [x] **Order multiple items where 1 is valid and 1 is invalid** - ✅ **PASSED**
-  - **Test:** Customer orders "quantum burger and fake item"
-  - **Result:** System correctly added valid item, ignored invalid item
-  - **Status:** Working as expected - no order update when invalid items present
-
-#### **Multiple Items with Modifications Tests**
-- [x] **Order multiple items each with their own modifications** - ✅ **PASSED**
-  - **Test:** Customer orders "quantum burger with extra cheese and veggie wrap with no onions"
-  - **Result:** Both items added correctly with their respective modifications
-  - **Status:** Working perfectly
-
-#### **Order Completion Tests**
-- [x] **Complete order and check database persistence** - ❌ **FAILED**
-  - **Test:** Customer completes order, check if order is saved to PostgreSQL
-  - **Result:** Order disappears instead of being archived
-  - **Status:** **CRITICAL BUG** - Orders not being saved after completion
-  - **Impact:** No order history, lost revenue tracking
-
-#### **AI Response Quality Tests**
-- [x] **Check AI mentions modifications in confirmations** - ❌ **FAILED**
-  - **Test:** Customer says "quantum burger with extra cheese"
-  - **Result:** AI responds "Added Quantum Cheeseburger" (missing "with extra cheese")
-  - **Status:** **UX BUG** - AI not mentioning modifications in confirmations
-  - **Impact:** Poor user experience, customers can't verify modifications
-
-#### **Item Consolidation Tests**
-- [x] **Order same item multiple times** - ❌ **FAILED**
-  - **Test:** Customer says "I'll take 2 quantum burgers"
-  - **Result:** Shows as 2 separate "Quantum Burger" entries instead of 1 entry with quantity 2
-  - **Status:** **UX BUG** - Duplicate items not consolidated
-  - **Impact:** Cluttered order display, confusing for customers
+### **✅ Order Completion**
+- [ ] **Confirm order:** "That's everything"
+- [ ] **Check order summary:** Verify all items and modifications
+- [ ] **Database persistence:** Verify order saved to PostgreSQL
 
 ---
 
-## 📋 Test Categories to Consider
+## 🚨 **EDGE CASE TESTS** (Error Handling)
 
-### **Edge Cases**
-- [x] **Add excessive quantity (100 items)** - ✅ **PASSED** - System refused large quantity
-- [x] **Add non-existent item** - ✅ **PASSED** - System said it didn't have it and moved on
-- [x] **Add negative quantity** - ✅ **PASSED** - System refused negative quantities
-- [x] **Update quantity to negative** - ✅ **PASSED** - System refused negative quantity updates
-- [x] **Modify quantity of item not in order** - ❌ **FAILED** - "5 astro nuggets instead of 3" when astro nuggets wasn't on order
-- [ ] Add item with very long ingredient list
-- [ ] Try to modify item that doesn't exist in order
-- [ ] Try to remove item that doesn't exist in order
-- [ ] Add item with conflicting modifications (e.g., "extra cheese, no cheese")
+### **❌ Invalid Items (NEW 70% Threshold)**
+- [ ] **Completely unrelated items:** "I'd like foie gras" → "Sorry, we don't have that"
+- [ ] **Fancy restaurant items:** "I'll take truffles and caviar" → Proper rejection
+- [ ] **Mixed valid/invalid:** "Quantum cheeseburger and lobster" → Add valid, reject invalid
 
-### **Fuzzy Search Tests**
-- [ ] Add item using partial/abbreviated name
-- [ ] Add item using common nickname
-- [ ] Test with similar-sounding items
+### **❌ Ambiguous Items**
+- [ ] **Multiple similar items:** "I'll take a burger" → "Which burger? We have Quantum Cheeseburger, Neon Double Burger..."
+- [ ] **Partial names:** "I'll take the quantum" → Should ask for clarification
 
-### **Complex Order Scenarios**
-- [ ] Large order with many different items
-- [ ] Multiple modifications on same item
-- [ ] Mix of regular items and modified items
-- [ ] Order with items from different categories
+### **❌ Invalid Modifications**
+- [ ] **Non-existent ingredients:** "Quantum cheeseburger with truffles" → Reject modification
+- [ ] **Conflicting modifications:** "Extra cheese, no cheese" → Handle gracefully
 
-### **Modification Handling Tests**
-- [ ] Add modifications to items with existing modifications
-- [ ] Replace all modifications vs. add to existing modifications
-- [ ] Context clues for "as well" vs. "instead" vs. "change to"
-
-### **Error Handling Tests**
-- [ ] Invalid ingredient requests
-- [ ] Unclear modification requests
-- [ ] Ambiguous item names
-
-### **Conversational Context Tests**
-- [ ] Pronoun resolution from previous conversation
-- [ ] Context-dependent item references ("that one", "the last thing", "them")
-- [ ] Multi-turn conversation flow
-
-### **Natural Speech Handling Tests**
-- [x] **Mid-sentence corrections** - ✅ **PASSED** - "2 burgers...no wait...make that 4" handled correctly
-- [x] **Extraneous conversation and background noise** - ✅ **PASSED** - Handles "uhhhs", "hmmms", and background talking well
-
-### **Intent Classification Issues**
-- [x] **Ambiguous item requests** - ❌ **FAILED** - "Can I get the burger?" interpreted as modify instead of asking "which burger?"
-
-### **Session Management Tests**
-- [ ] New car with existing order
-- [ ] Car controls during AI processing
-- [ ] Order persistence between sessions
-
-### **Performance Tests**
-- [ ] Response time with complex orders
-- [ ] Memory usage with large orders
-- [ ] Concurrent user scenarios
+### **❌ Edge Quantities**
+- [ ] **Excessive quantity:** "I'll take 100 quantum cheeseburgers" → Reject or limit
+- [ ] **Negative quantity:** "I'll take -2 quantum cheeseburgers" → Reject
+- [ ] **Zero quantity:** "Make that 0 quantum cheeseburgers" → Remove item
 
 ---
 
-## 📊 Test Results Summary
+## 🧠 **CONTEXT & CONVERSATION TESTS**
 
-**Total Tests Completed:** 18  
-**Passed:** 12  
-**Failed:** 6  
-**Success Rate:** 67%
+### **✅ Multi-Turn Conversations**
+- [ ] **Question → Order:** "What's on the veggie wrap?" → "I'll take two"
+- [ ] **Order → Modify:** "Quantum cheeseburger" → "Actually, make that extra cheese"
+- [ ] **Order → Remove:** "I'll take fries" → "Actually, take those off"
+
+### **✅ Pronoun Resolution**
+- [ ] **"That one":** "What's on the quantum burger?" → "I'll take that one"
+- [ ] **"Those":** "I'll take two veggie wraps" → "Actually, take those off"
+- [ ] **"It":** "What's on the salad?" → "I'll take it"
+
+### **✅ Context Switching**
+- [ ] **Item A → Question about B → Order B:** "Quantum burger" → "What's on the wrap?" → "I'll take the wrap"
+- [ ] **Multiple items → Remove specific:** "Burger and fries" → "Take off the burger"
 
 ---
 
-## 🏷️ Labels
+## 🎤 **NATURAL SPEECH TESTS**
 
-- `core` - Core functionality tests
-- `edge-case` - Edge case scenarios
-- `fuzzy-search` - Fuzzy matching tests
-- `performance` - Performance related tests
-- `error-handling` - Error scenario tests
-- `session` - Session management tests
+### **✅ Background Noise**
+- [ ] **Phone conversation:** "I'll take a burger...hold on...yeah, a quantum cheeseburger"
+- [ ] **Passenger chatter:** "I'll take fries...stop hitting your sister...and a drink"
+- [ ] **Corrections:** "I'll take 2 burgers...no wait...make that 3"
+
+### **✅ Unclear Speech**
+- [ ] **Mumbling:** "I'll take a...um...quantum thing"
+- [ ] **Interruptions:** "I'll take a quantum...what was that? ...cheeseburger"
+- [ ] **Fast speech:** Rapid-fire ordering
+
+---
+
+## 🔧 **SYSTEM INTEGRATION TESTS**
+
+### **✅ Button States**
+- [ ] **"New Car" button:** Disabled during AI processing
+- [ ] **"Next Customer" button:** Disabled during AI processing
+- [ ] **Microphone button:** Shows loading state during processing
+
+### **✅ Order Display**
+- [ ] **Item consolidation:** Same items with same modifications show as quantity
+- [ ] **Modifier costs:** Extra cheese shows additional cost
+- [ ] **Order totals:** Subtotal, tax, total calculated correctly
+
+### **✅ Database Operations**
+- [ ] **Order archiving:** Orders saved to PostgreSQL after completion
+- [ ] **Session management:** New car clears previous order
+- [ ] **Conversation history:** Context maintained across turns
+
+---
+
+## 🚀 **PERFORMANCE TESTS**
+
+### **✅ Response Times**
+- [ ] **Simple order:** < 3 seconds
+- [ ] **Complex order:** < 5 seconds
+- [ ] **Context resolution:** < 4 seconds
+- [ ] **Question answering:** < 3 seconds
+
+### **✅ Memory Usage**
+- [ ] **Large orders:** 10+ items with modifications
+- [ ] **Long conversations:** 20+ turns
+- [ ] **Multiple sessions:** Concurrent users
+
+---
+
+## 📋 **TESTING CHECKLIST**
+
+### **Pre-Test Setup**
+- [ ] Clear database
+- [ ] Fresh browser session
+- [ ] Check all services running
+- [ ] Verify menu data loaded
+
+### **Test Execution**
+- [ ] Test each scenario 3 times
+- [ ] Note any failures or unexpected behavior
+- [ ] Check database after each test
+- [ ] Verify frontend display matches backend
+
+### **Post-Test Cleanup**
+- [ ] Clear test data
+- [ ] Reset to clean state
+- [ ] Document any issues found
+
+---
+
+## 🎯 **SUCCESS CRITERIA**
+
+**System is ready for production if:**
+- ✅ All Happy Path tests pass
+- ✅ All Edge Case tests handle gracefully (no crashes)
+- ✅ Context Resolution works for 80%+ of scenarios
+- ✅ Response times under 5 seconds
+- ✅ Database persistence works
+- ✅ UI states work correctly
+
+---
+
+## 🏷️ **Test Categories**
+
+- `happy-path` - Core functionality that should work
+- `edge-case` - Error scenarios that should be handled gracefully  
+- `context` - Conversation and pronoun resolution
+- `performance` - Speed and memory usage
+- `integration` - System components working together

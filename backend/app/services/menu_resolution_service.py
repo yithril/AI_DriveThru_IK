@@ -151,6 +151,11 @@ class MenuResolutionService:
             # Check if there's a clear winner
             is_clear_winner = self._is_clear_winner(matches, best_score)
             
+            # If best score is below threshold, treat as unavailable
+            if best_score < 70:
+                logger.info(f"DEBUG: Best match score {best_score} below threshold - marking as unavailable")
+                return await self._handle_unavailable_item(extracted_item, restaurant_id)
+            
             if is_clear_winner:
                 # Normalize modifiers using deterministic parsing
                 clean_modifiers, detailed_modifiers = await self._normalize_modifiers(
@@ -347,9 +352,8 @@ class MenuResolutionService:
         Determine if there's a clear winner among the matches.
         
         A clear winner is determined by:
-        1. Only one match, OR
-        2. Best score >= 90, OR  
-        3. Best score is significantly higher than the second best (gap >= 15 points)
+        1. Best score >= 70 (minimum confidence threshold), AND
+        2. (Only one match, OR best score >= 90, OR significant gap >= 15 points)
         
         Args:
             matches: List of match results
@@ -358,7 +362,12 @@ class MenuResolutionService:
         Returns:
             bool: True if there's a clear winner
         """
-        # Single match is always clear
+        # Minimum confidence threshold - reject matches below 70%
+        if best_score < 70:
+            logger.info(f"DEBUG: Best match score {best_score} below minimum threshold of 70 - rejecting match")
+            return False
+            
+        # Single match is always clear (if above threshold)
         if len(matches) == 1:
             return True
             
