@@ -37,12 +37,18 @@ REQUIRED JSON FORMAT:
 
 INTENT TYPES:
 - ADD_ITEM: User wants to add food/drink items
-- REMOVE_ITEM: User wants to remove specific items
+- REMOVE_ITEM: User wants to remove specific items (remove, take off, cancel, delete)
 - CLEAR_ORDER: User wants to remove all items
 - MODIFY_ITEM: User wants to change item properties (including quantity) of an EXISTING item
 - CONFIRM_ORDER: User is done ordering ("that's it", "done", "that's all")
 - QUESTION: User asks questions about menu, prices, etc.
 - UNKNOWN: Unclear or ambiguous intent
+
+REMOVAL LANGUAGE PATTERNS:
+- "remove", "take off", "cancel", "delete", "get rid of"
+- "take that off", "remove that", "cancel my [item]"
+- "actually, take that last one off" (correction + removal)
+- "take the [item] off", "remove the [item]"
 
 CRITICAL DISAMBIGUATION (ADD vs MODIFY):
 - Prefer MODIFY_ITEM only when BOTH are true:
@@ -74,6 +80,10 @@ EDGE CASE GUIDANCE:
 - "Make it two" after a referenced item → MODIFY_ITEM (quantity change)
 - "No pickles" immediately after discussing a specific added burger → MODIFY_ITEM for that burger
 - "Cancel my fries" → REMOVE_ITEM (not CLEAR_ORDER)
+- "Take that off" → REMOVE_ITEM (remove specific item)
+- "Take the last one off" → REMOVE_ITEM (remove last added item)
+- "Actually, take that last one off" → REMOVE_ITEM (remove with correction)
+- "Remove the burger" → REMOVE_ITEM (remove specific item)
 - "Clear the order" → CLEAR_ORDER
 - "Is the shake large?" → QUESTION (not MODIFY_ITEM)
 
@@ -100,6 +110,12 @@ EXAMPLES:
 
 - "Remove my fries"
   → {{"intent": "REMOVE_ITEM", "confidence": 0.9, "reasoning": "Clear request to remove specific item"}}
+
+- "Actually, take that last one off"
+  → {{"intent": "REMOVE_ITEM", "confidence": 0.85, "reasoning": "Request to remove the last added item with correction language"}}
+
+- "Take the burger off"
+  → {{"intent": "REMOVE_ITEM", "confidence": 0.9, "reasoning": "Clear request to remove specific burger item"}}
 
 - "That's all"
   → {{"intent": "CONFIRM_ORDER", "confidence": 0.95, "reasoning": "Clear signal that ordering is complete"}}

@@ -282,12 +282,16 @@ class OrderSessionService:
             # Get menu item details for display
             menu_item_details = await self._get_menu_item_details(menu_item_id)
             
+            # Calculate modifier cost breakdown
+            modifier_cost_breakdown = await self._get_modifier_cost_breakdown(menu_item_id, modifications or {})
+            
             # Create order item
             order_item = {
                 "id": f"item_{int(datetime.now().timestamp() * 1000)}",
                 "menu_item_id": menu_item_id,
                 "quantity": quantity,
                 "modifications": modifications or {},
+                "modifier_costs": modifier_cost_breakdown,  # Add modifier cost breakdown
                 "added_at": datetime.now().isoformat(),
                 "menu_item": menu_item_details  # Include menu item details
             }
@@ -378,6 +382,66 @@ class OrderSessionService:
             logger.error(f"Error recalculating order totals: {e}")
             return order_data
     
+    async def _get_modifier_cost_breakdown(self, menu_item_id: int, modifications: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        Get detailed breakdown of modifier costs for an order item.
+        
+        Args:
+            menu_item_id: ID of the menu item
+            modifications: Modifications dictionary containing modifiers list
+            
+        Returns:
+            List of modifier cost details
+        """
+        try:
+            modifier_costs = []
+            modifiers = modifications.get("modifiers", [])
+            
+            if not modifiers:
+                return modifier_costs
+            
+            # Process each modifier tuple (ingredient_id, action)
+            for modifier in modifiers:
+                if not isinstance(modifier, (list, tuple)) or len(modifier) != 2:
+                    continue
+                    
+                ingredient_id, action = modifier
+                
+                # Only charge for "extra" type modifications
+                if action not in ["extra", "heavy", "double", "more", "additional"]:
+                    continue
+                
+                # Look up the MenuItemIngredient record to get additional_cost and ingredient name
+                from app.models.menu_item_ingredient import MenuItemIngredient
+                from app.models.ingredient import Ingredient
+                
+                menu_item_ingredient = await MenuItemIngredient.filter(
+                    menu_item_id=menu_item_id,
+                    ingredient_id=ingredient_id
+                ).first()
+                
+                if menu_item_ingredient and menu_item_ingredient.additional_cost:
+                    # Get ingredient name
+                    ingredient = await Ingredient.get_or_none(id=ingredient_id)
+                    ingredient_name = ingredient.name if ingredient else f"ingredient_{ingredient_id}"
+                    
+                    additional_cost = float(menu_item_ingredient.additional_cost)
+                    
+                    modifier_costs.append({
+                        "ingredient_id": ingredient_id,
+                        "ingredient_name": ingredient_name,
+                        "action": action,
+                        "cost": additional_cost
+                    })
+                    
+                    logger.info(f"Modifier cost breakdown: ingredient_id={ingredient_id}, name={ingredient_name}, action={action}, cost={additional_cost}")
+            
+            return modifier_costs
+            
+        except Exception as e:
+            logger.error(f"Error getting modifier cost breakdown: {e}")
+            return []
+
     async def _calculate_modifier_costs(self, menu_item_id: int, modifications: Dict[str, Any]) -> float:
         """
         Calculate additional costs for ingredient modifications

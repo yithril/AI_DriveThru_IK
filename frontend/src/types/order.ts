@@ -10,6 +10,7 @@ export interface LineItem {
   quantity: number;
   additional_cost?: number;
   additional_costs?: { name: string; cost: number }[];
+  modifier_costs?: { ingredient_id: number; ingredient_name: string; action: string; cost: number }[];
   total_price?: number;
   customizations?: string[];
   size?: string;

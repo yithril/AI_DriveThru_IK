@@ -14,6 +14,7 @@ from app.services.workflow_orchestrator import WorkflowOrchestrator, VoiceProces
 from app.workflow.response.workflow_result import WorkflowResult, WorkflowType
 from app.constants.intent_types import IntentType
 from app.constants.audio_phrases import AudioPhraseType
+from app.dto.conversation_dto import ConversationHistory
 
 
 class TestWorkflowOrchestrator:
@@ -94,7 +95,7 @@ class TestWorkflowOrchestrator:
         # Mock STT
         with patch.object(orchestrator, '_speech_to_text', return_value="I'll take a burger"):
             # Mock conversation context
-            with patch.object(orchestrator, '_get_conversation_history', return_value=[]):
+            with patch.object(orchestrator, '_get_conversation_history', return_value=ConversationHistory(session_id="session_123")):
                 with patch.object(orchestrator, '_get_current_order', return_value=None):
                     # Mock preprocessing workflow
                     with patch.object(orchestrator.preprocessing_workflow, 'execute', return_value=sample_preprocessing_result):
@@ -155,7 +156,7 @@ class TestWorkflowOrchestrator:
         # Mock STT success
         with patch.object(orchestrator, '_speech_to_text', return_value="I'll take a burger"):
             # Mock conversation context
-            with patch.object(orchestrator, '_get_conversation_history', return_value=[]):
+            with patch.object(orchestrator, '_get_conversation_history', return_value=ConversationHistory(session_id="session_123")):
                 with patch.object(orchestrator, '_get_current_order', return_value=None):
                     # Mock preprocessing workflow
                     with patch.object(orchestrator.preprocessing_workflow, 'execute', return_value=sample_preprocessing_result):
@@ -186,7 +187,7 @@ class TestWorkflowOrchestrator:
         # Mock STT success
         with patch.object(orchestrator, '_speech_to_text', return_value="I'll take that"):
             # Mock conversation context
-            with patch.object(orchestrator, '_get_conversation_history', return_value=[]):
+            with patch.object(orchestrator, '_get_conversation_history', return_value=ConversationHistory(session_id="session_123")):
                 with patch.object(orchestrator, '_get_current_order', return_value=None):
                     # Mock preprocessing workflow returning clarification needed
                     clarification_result = WorkflowResult(

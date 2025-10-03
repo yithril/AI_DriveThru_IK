@@ -42,7 +42,44 @@
 
 
 
-#### **BUG-012: Impossible Modifications Not Handled**
+#### **BUG-012: Ingredient Resolution Failure for Modifiers**
+- **Description:** System fails to resolve ingredient names in modifiers, causing modifier costs to not be applied
+- **Example:** User says "extra veggies" but system can't find ingredient "veggies" (should be "Veggie Mix")
+- **Expected:** System should resolve ingredient names to database names and apply modifier costs
+- **Actual:** Ingredient search returns 0 matches, modifier costs not applied
+- **Impact:** High - Customer charged incorrectly, modifier costs missing
+- **Status:** Open
+- **Log Evidence:** `Ingredient search returned 0 matches` and `Ingredient not found for modifier 'extra veggies'`
+
+#### **BUG-013: Context Resolution Failure for "Another One"**
+- **Description:** System fails to resolve "another one" using conversation history, even though it worked in integration testing
+- **Example:** User orders "veggie wrap", then says "Let me have another one" - should resolve to "another veggie wrap"
+- **Expected:** System should use conversation history to understand "another one" refers to the previously mentioned item
+- **Actual:** Context agent returns UNRESOLVABLE (confidence: 0.20) and asks for clarification
+- **Impact:** High - Poor UX, system worked in testing but fails in production
+- **Status:** Open
+- **Log Evidence:** 
+  ```
+  Context resolution result: status=UNRESOLVABLE, confidence=0.20
+  Clarification message: Could you please specify what item you would like to add to your order?
+  ```
+- **Investigation Needed:** Compare integration test context vs production context
+
+#### **BUG-015: Intent Classification Failure for "Let me have one"**
+- **Description:** System fails to classify "Let me have one" as ADD_ITEM intent, even though it worked in integration testing
+- **Example:** User asks about "veggie wrap", then says "Let me have one" - should be classified as ADD_ITEM
+- **Expected:** Intent classifier should recognize "Let me have one" as ADD_ITEM intent
+- **Actual:** Intent classified as UNKNOWN (confidence: 0.6) and system says "Sorry, I didn't understand that"
+- **Impact:** High - Poor UX, system worked in testing but fails in production
+- **Status:** Open
+- **Log Evidence:**
+  ```
+  Intent classified: IntentType.UNKNOWN (confidence: 0.6)
+  No context resolution needed, using cleaned input
+  ```
+- **Investigation Needed:** Compare integration test intent classification vs production intent classification
+
+#### **BUG-014: Impossible Modifications Not Handled**
 - **Description:** System doesn't gracefully handle requests for non-existent ingredients or impossible modifications
 - **Example:** "I want a neon burger with two hockey sticks please" - hockey sticks don't exist as an ingredient
 - **Expected:** System should politely inform customer that ingredient doesn't exist and suggest alternatives

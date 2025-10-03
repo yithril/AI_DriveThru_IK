@@ -9,6 +9,7 @@ from typing import Dict, Any, Optional, List
 from app.workflow.agents.question_agent import question_agent
 from app.workflow.response.workflow_result import QuestionAnswerWorkflowResult, WorkflowType
 from app.constants.audio_phrases import AudioPhraseType
+from app.dto.conversation_dto import ConversationHistory
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ class QuestionAnswerWorkflow:
     async def execute(
         self, 
         user_input: str,
-        conversation_history: Optional[List[Dict[str, Any]]] = None,
+        conversation_history: Optional[ConversationHistory] = None,
         current_order: Optional[Dict[str, Any]] = None
     ) -> QuestionAnswerWorkflowResult:
         """
@@ -60,7 +61,7 @@ class QuestionAnswerWorkflow:
                 menu_service=self.menu_service,
                 ingredient_service=self.ingredient_service,
                 restaurant_service=self.restaurant_service,
-                conversation_history=conversation_history or [],
+                conversation_history=conversation_history or ConversationHistory(session_id=""),
                 current_order=current_order or {}
             )
             

@@ -3,12 +3,13 @@ Prompts for the context resolution agent
 """
 
 from typing import List, Dict, Any, Optional
+from app.dto.conversation_dto import ConversationHistory
 
 
 def get_context_resolution_prompt(
     user_input: str,
-    conversation_history: List[Dict[str, Any]],
-    command_history: List[Dict[str, Any]],
+    conversation_history: ConversationHistory,
+    command_history: ConversationHistory,
     current_order: Optional[Dict[str, Any]] = None
 ) -> str:
     """
@@ -43,16 +44,18 @@ Transform the ambiguous user input into explicit text that the downstream system
 
 RULES:
 1. Always return ONLY the JSON object, no extra text.
-2. Use conversation, commands, and current order to resolve references.
-3. Expand pronouns (e.g. "it", "that", "same thing") into explicit item names.
-4. Expand vague quantities into explicit numbers where possible.
-5. If input cannot be resolved with high confidence, return CLARIFICATION_NEEDED and provide a concrete, context-aware question.
-6. Confidence guidelines:
+2. If the input is already explicit and clear (no ambiguity), return SUCCESS with the original text unchanged.
+3. Use conversation, commands, and current order to resolve references.
+4. Expand pronouns (e.g. "it", "that", "same thing") into explicit item names.
+5. Expand vague quantities into explicit numbers where possible.
+6. If input cannot be resolved with high confidence, return CLARIFICATION_NEEDED and provide a concrete, context-aware question.
+7. Confidence guidelines:
    - 0.8–1.0 → SUCCESS
    - 0.3–0.7 → CLARIFICATION_NEEDED
    - <0.3 → UNRESOLVABLE (with clarification_message asking user to restate request)
 
 EXAMPLES:
+- "Tell me about the veggie wrap" → "Tell me about the veggie wrap" (already clear, pass through)
 - "I'll take two" → "I'll take two veggie wraps" (if veggie wrap was recently discussed)
 - "Same thing" → "I'll take the same veggie wrap" (if veggie wrap was recently ordered)
 - "Make it large" → "Make the veggie wrap large" (if veggie wrap is in current order)
@@ -80,19 +83,19 @@ Return ONLY the JSON response. Do not include any other text."""
 
 
 def _build_context_summary(
-    conversation_history: List[Dict[str, Any]],
-    command_history: List[Dict[str, Any]],
+    conversation_history: ConversationHistory,
+    command_history: ConversationHistory,
     current_order: Optional[Dict[str, Any]]
 ) -> str:
     """Build a summary of context for the prompt"""
     summary_parts = []
     
     # Recent conversation (last 3 turns)
-    if conversation_history:
-        recent_conv = conversation_history[-3:]
+    if not conversation_history.is_empty():
+        recent_conv = conversation_history.get_recent_entries(3)
         conv_text = "\n".join([
-            f"{turn.get('role', 'unknown')}: {turn.get('content', '')}" 
-            for turn in recent_conv
+            f"{entry.role.value}: {entry.content}" 
+            for entry in recent_conv
         ])
         summary_parts.append(f"Recent conversation:\n{conv_text}")
     

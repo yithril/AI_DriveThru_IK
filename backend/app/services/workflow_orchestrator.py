@@ -12,6 +12,7 @@ import logging
 import base64
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
+from app.dto.conversation_dto import ConversationHistory
 
 from app.workflow.nodes.preprocessing_workflow import PreprocessingWorkflow
 from app.workflow.nodes.add_item_workflow import AddItemWorkflow
@@ -155,6 +156,17 @@ class WorkflowOrchestrator:
             # Step 2: Get conversation context
             conversation_history = await self._get_conversation_history(session_id)
             current_order = await self._get_current_order(session_id)
+            
+            # DEBUG: Log conversation history format
+            logger.info(f"DEBUG WORKFLOW ORCHESTRATOR:")
+            logger.info(f"  Session ID: {session_id}")
+            logger.info(f"  Conversation history length: {len(conversation_history)}")
+            if not conversation_history.is_empty():
+                logger.info(f"  Conversation history format:")
+                for i, entry in enumerate(conversation_history.get_recent_entries(2)):
+                    logger.info(f"    {i+1}. {entry.role.value}: {entry.content[:50]}...")
+            else:
+                logger.info(f"  Conversation history: EMPTY")
             
             # Step 3: Preprocessing (noise filter + intent classification + context resolution)
             preprocessing_result = await self.preprocessing_workflow.execute(
@@ -404,13 +416,13 @@ class WorkflowOrchestrator:
             logger.error(f"Voice generation from text failed: {e}")
             return None
     
-    async def _get_conversation_history(self, session_id: str) -> List[Dict[str, Any]]:
+    async def _get_conversation_history(self, session_id: str) -> ConversationHistory:
         """Get conversation history for session"""
         try:
             return await self.session_service.get_conversation_history(session_id)
         except Exception as e:
             logger.error(f"Failed to get conversation history: {e}")
-            return []
+            return ConversationHistory(session_id=session_id)
     
     async def _get_current_order(self, session_id: str) -> Optional[Dict[str, Any]]:
         """Get current order for session"""

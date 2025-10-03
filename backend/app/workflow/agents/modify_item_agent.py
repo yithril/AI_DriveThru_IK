@@ -13,6 +13,7 @@ from langchain_openai import ChatOpenAI
 from app.workflow.response.modify_item_response import ModifyItemResult
 from app.workflow.prompts.modify_item_prompts import get_modify_item_prompt
 from app.config.settings import settings
+from app.dto.conversation_dto import ConversationHistory
 
 logger = logging.getLogger(__name__)
 
@@ -20,8 +21,8 @@ logger = logging.getLogger(__name__)
 async def modify_item_agent(
     user_input: str,
     current_order: List[Dict[str, Any]],
-    conversation_history: Optional[List[Dict[str, Any]]] = None,
-    command_history: Optional[List[Dict[str, Any]]] = None
+    conversation_history: Optional[ConversationHistory] = None,
+    command_history: Optional[ConversationHistory] = None
 ) -> ModifyItemResult:
     """
     Parse user modification request and identify target item with modifications.
@@ -47,9 +48,11 @@ async def modify_item_agent(
         ModifyItemResult with parsed modification details
     """
     try:
-        # Use empty lists if not provided
-        conversation_history = conversation_history or []
-        command_history = command_history or []
+        # Use empty ConversationHistory if not provided
+        if conversation_history is None:
+            conversation_history = ConversationHistory(session_id="")
+        if command_history is None:
+            command_history = ConversationHistory(session_id="")
         
         # Get formatted prompt
         prompt = get_modify_item_prompt(

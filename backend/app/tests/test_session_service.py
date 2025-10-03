@@ -4,7 +4,9 @@ Unit tests for SessionService - Redis-based session management
 
 import pytest
 from unittest.mock import AsyncMock, Mock
+from datetime import datetime
 from app.services.session_service import SessionService
+from app.dto.conversation_dto import ConversationHistory, ConversationRole
 
 
 @pytest.fixture
@@ -247,3 +249,116 @@ class TestSessionService:
         assert await session_service.update_session("test", {}) is False
         assert await session_service.delete_session("test") is False
         assert await session_service.clear_current_session() is False
+
+    async def test_add_conversation_entry_success(self, session_service, mock_redis_service):
+        """Test successful conversation entry addition"""
+        # Mock existing conversation history
+        existing_history = {
+            "session_id": "session_123",
+            "entries": []
+        }
+        mock_redis_service.get_json.return_value = existing_history
+        mock_redis_service.set_json.return_value = True
+        
+        result = await session_service.add_conversation_entry(
+            session_id="session_123",
+            user_input="Hello, I'd like to order",
+            ai_response="Hi! What would you like to order?"
+        )
+        
+        assert result is True
+        
+        # Verify the conversation was stored
+        mock_redis_service.set_json.assert_called_once()
+        call_args = mock_redis_service.set_json.call_args
+        stored_data = call_args[0][1]  # Second argument is the data
+        
+        assert stored_data["session_id"] == "session_123"
+        assert len(stored_data["entries"]) == 2
+        assert stored_data["entries"][0]["role"] == "user"
+        assert stored_data["entries"][0]["content"] == "Hello, I'd like to order"
+        assert stored_data["entries"][1]["role"] == "assistant"
+        assert stored_data["entries"][1]["content"] == "Hi! What would you like to order?"
+
+    async def test_add_conversation_entry_redis_unavailable(self, session_service, mock_redis_service):
+        """Test conversation entry addition when Redis is unavailable"""
+        mock_redis_service.get.side_effect = Exception("Redis unavailable")
+        
+        result = await session_service.add_conversation_entry(
+            session_id="session_123",
+            user_input="Hello",
+            ai_response="Hi"
+        )
+        
+        assert result is False
+
+    async def test_get_conversation_history_success(self, session_service, mock_redis_service):
+        """Test successful conversation history retrieval"""
+        expected_data = {
+            "session_id": "session_123",
+            "entries": [
+                {
+                    "role": "user",
+                    "content": "Hello",
+                    "timestamp": "2025-01-01T12:00:00",
+                    "session_id": "session_123"
+                },
+                {
+                    "role": "assistant",
+                    "content": "Hi there",
+                    "timestamp": "2025-01-01T12:01:00",
+                    "session_id": "session_123"
+                }
+            ]
+        }
+        mock_redis_service.get_json.return_value = expected_data
+        
+        result = await session_service.get_conversation_history("session_123")
+        
+        assert isinstance(result, ConversationHistory)
+        assert result.session_id == "session_123"
+        assert len(result.entries) == 2
+        assert result.entries[0].content == "Hello"
+        assert result.entries[1].content == "Hi there"
+
+    async def test_get_conversation_history_empty(self, session_service, mock_redis_service):
+        """Test conversation history retrieval when no history exists"""
+        mock_redis_service.get_json.return_value = None
+        
+        result = await session_service.get_conversation_history("session_123")
+        
+        assert isinstance(result, ConversationHistory)
+        assert result.session_id == "session_123"
+        assert result.is_empty()
+
+    async def test_get_conversation_history_redis_unavailable(self, session_service, mock_redis_service):
+        """Test conversation history retrieval when Redis is unavailable"""
+        mock_redis_service.get.side_effect = Exception("Redis unavailable")
+        
+        result = await session_service.get_conversation_history("session_123")
+        
+        assert isinstance(result, ConversationHistory)
+        assert result.session_id == "session_123"
+        assert result.is_empty()
+
+    async def test_get_command_history(self, session_service, mock_redis_service):
+        """Test command history retrieval (should return same as conversation history)"""
+        expected_data = {
+            "session_id": "session_123",
+            "entries": [
+                {
+                    "role": "user",
+                    "content": "I want a burger",
+                    "timestamp": "2025-01-01T12:00:00",
+                    "session_id": "session_123"
+                }
+            ]
+        }
+        mock_redis_service.get_json.return_value = expected_data
+        
+        result = await session_service.get_command_history("session_123")
+        
+        assert isinstance(result, ConversationHistory)
+        assert result.session_id == "session_123"
+        assert len(result.entries) == 1
+        assert result.entries[0].content == "I want a burger"

@@ -19,6 +19,7 @@ from app.workflow.response.item_extraction_response import ItemExtractionRespons
 from app.workflow.response.menu_resolution_response import MenuResolutionResponse
 from app.constants.audio_phrases import AudioPhraseType
 from app.constants.order_config import MAX_ITEM_QUANTITY, MAX_TOTAL_ITEMS, DEFAULT_ITEM_QUANTITY
+from app.dto.conversation_dto import ConversationHistory
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +64,7 @@ class AddItemWorkflow:
         self, 
         user_input: str,
         session_id: str,
-        conversation_history: Optional[List[Dict[str, Any]]] = None,
+        conversation_history: Optional[ConversationHistory] = None,
         current_order: Optional[Dict[str, Any]] = None
     ) -> WorkflowResult:
         """
@@ -84,7 +85,7 @@ class AddItemWorkflow:
             
             # Step 1: Extract items from user input using LLM
             extraction_context = self._build_extraction_context(
-                conversation_history or [], 
+                conversation_history or ConversationHistory(session_id=session_id), 
                 current_order or {}
             )
             
@@ -228,10 +229,10 @@ class AddItemWorkflow:
                 workflow_type=WorkflowType.ADD_ITEM
             )
     
-    def _build_extraction_context(self, conversation_history: List[Dict[str, Any]], current_order: Dict[str, Any]) -> Dict[str, Any]:
+    def _build_extraction_context(self, conversation_history: ConversationHistory, current_order: Dict[str, Any]) -> Dict[str, Any]:
         """Build context for item extraction agent"""
         return {
-            "conversation_history": conversation_history,
+            "conversation_history": conversation_history.get_recent_entries(5),  # Convert to list for agent
             "order_state": current_order,
             "restaurant_id": str(self.restaurant_id)
         }

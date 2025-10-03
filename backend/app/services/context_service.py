@@ -40,8 +40,7 @@ class ContextService:
         
         # Generic patterns for eligibility check (restaurant-agnostic)
         self.pronoun_patterns = [
-            r'\b(it|that|this|them|one)\b',
-            r'\b(the|that|those)\s+\w+',
+            r'\b(it|that|this|them|one)\b',  # Standalone pronouns
         ]
         
         self.quantity_patterns = [
@@ -49,7 +48,8 @@ class ContextService:
         ]
         
         self.demonstrative_patterns = [
-            r'\b(the|that|those)\s+\w+',
+            r'\b(that|those)\s+\w+',  # "that burger", "those fries" - ambiguous
+            r'\bthe\s+(same|one|other)\b',  # "the same", "the one" - ambiguous
         ]
         
         # Additional generic patterns for common drive-thru scenarios
@@ -82,7 +82,7 @@ class ContextService:
             bool: True if input needs context resolution
         """
         # Run on order-related intents and questions that might have ambiguous references
-        eligible_intents = ['ADD_ITEM', 'MODIFY_ITEM', 'REPEAT_ITEM', 'QUESTION']
+        eligible_intents = ['ADD_ITEM', 'MODIFY_ITEM', 'REPEAT_ITEM', 'REMOVE_ITEM', 'QUESTION']
         if intent not in eligible_intents:
             self.logger.debug(f"Intent '{intent}' not in eligible intents, skipping context resolution")
             return False

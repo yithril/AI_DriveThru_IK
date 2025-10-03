@@ -17,6 +17,7 @@ from app.workflow.converters.order_data_converter import OrderDataConverter
 from app.dto.modify_item_dto import ModifyItemResultDto
 from app.workflow.response.workflow_result import ModifyItemWorkflowResult
 from app.constants.audio_phrases import AudioPhraseType
+from app.dto.conversation_dto import ConversationHistory
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +39,8 @@ class ModifyItemWorkflow:
         self, 
         user_input: str, 
         session_id: str,
-        conversation_history: Optional[List[Dict[str, Any]]] = None,
-        command_history: Optional[List[Dict[str, Any]]] = None
+        conversation_history: Optional[ConversationHistory] = None,
+        command_history: Optional[ConversationHistory] = None
     ) -> ModifyItemWorkflowResult:
         """
         Execute the modify item workflow
@@ -70,8 +71,8 @@ class ModifyItemWorkflow:
             agent_result = await modify_item_agent(
                 user_input=user_input,
                 current_order=postgresql_order,
-                conversation_history=conversation_history or [],
-                command_history=command_history or []
+                conversation_history=conversation_history or ConversationHistory(session_id=session_id),
+                command_history=command_history or ConversationHistory(session_id=session_id)
             )
             
             # Step 4: Check if agent needs clarification

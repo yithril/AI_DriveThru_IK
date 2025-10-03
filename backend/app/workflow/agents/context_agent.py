@@ -10,6 +10,7 @@ from typing import List, Dict, Any, Optional, Literal
 from dataclasses import dataclass
 from app.workflow.prompts.context_prompts import get_context_resolution_prompt
 from app.config.settings import settings
+from app.dto.conversation_dto import ConversationHistory
 
 logger = logging.getLogger(__name__)
 
@@ -41,8 +42,8 @@ class ContextAgent:
     async def resolve_context(
         self,
         user_input: str,
-        conversation_history: List[Dict[str, Any]],
-        command_history: List[Dict[str, Any]],
+        conversation_history: ConversationHistory,
+        command_history: ConversationHistory,
         current_order: Optional[Dict[str, Any]] = None
     ) -> ContextAgentResult:
         """
@@ -59,6 +60,29 @@ class ContextAgent:
         """
         try:
             self.logger.info(f"Resolving context for input: '{user_input}'")
+            
+            # DEBUG: Log the input data
+            self.logger.info(f"DEBUG CONTEXT INPUT:")
+            self.logger.info(f"  User input: '{user_input}'")
+            self.logger.info(f"  Conversation history length: {len(conversation_history)}")
+            self.logger.info(f"  Command history length: {len(command_history)}")
+            self.logger.info(f"  Current order: {current_order}")
+            
+            # DEBUG: Log conversation history details
+            if not conversation_history.is_empty():
+                self.logger.info(f"  Conversation history:")
+                for i, entry in enumerate(conversation_history.get_recent_entries(3)):  # Last 3 entries
+                    self.logger.info(f"    {i+1}. {entry.role.value}: {entry.content[:100]}...")
+            else:
+                self.logger.info(f"  Conversation history: EMPTY")
+            
+            # DEBUG: Log command history details
+            if not command_history.is_empty():
+                self.logger.info(f"  Command history:")
+                for i, entry in enumerate(command_history.get_recent_entries(3)):  # Last 3 entries
+                    self.logger.info(f"    {i+1}. {entry.role.value}: {entry.content[:100]}...")
+            else:
+                self.logger.info(f"  Command history: EMPTY")
             
             # Build context for LLM
             context_data = self._build_context_data(
@@ -90,14 +114,14 @@ class ContextAgent:
     
     def _build_context_data(
         self,
-        conversation_history: List[Dict[str, Any]],
-        command_history: List[Dict[str, Any]],
+        conversation_history: ConversationHistory,
+        command_history: ConversationHistory,
         current_order: Optional[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """Build context data for LLM"""
         return {
-            "conversation_history": conversation_history,
-            "command_history": command_history,
+            "conversation_history": conversation_history.get_recent_entries(5),
+            "command_history": command_history.get_recent_entries(5),
             "current_order": current_order or {},
             "context_summary": self._build_context_summary(
                 conversation_history, command_history, current_order
@@ -106,19 +130,19 @@ class ContextAgent:
     
     def _build_context_summary(
         self,
-        conversation_history: List[Dict[str, Any]],
-        command_history: List[Dict[str, Any]],
+        conversation_history: ConversationHistory,
+        command_history: ConversationHistory,
         current_order: Optional[Dict[str, Any]]
     ) -> str:
         """Build a summary of context for the LLM"""
         summary_parts = []
         
         # Recent conversation (last 3 turns)
-        if conversation_history:
-            recent_conv = conversation_history[-3:]
+        if not conversation_history.is_empty():
+            recent_conv = conversation_history.get_recent_entries(3)
             conv_text = "\n".join([
-                f"{turn.get('role', 'unknown')}: {turn.get('content', '')}" 
-                for turn in recent_conv
+                f"{entry.role.value}: {entry.content}" 
+                for entry in recent_conv
             ])
             summary_parts.append(f"Recent conversation:\n{conv_text}")
         
@@ -132,11 +156,11 @@ class ContextAgent:
             summary_parts.append(f"Current order: {order_text}")
         
         # Recent commands (last 3 commands)
-        if command_history:
-            recent_commands = command_history[-3:]
+        if not command_history.is_empty():
+            recent_commands = command_history.get_recent_entries(3)
             cmd_text = "\n".join([
-                f"Command: {cmd.get('action', 'unknown')} - {cmd.get('description', '')}" 
-                for cmd in recent_commands
+                f"Command: {entry.role.value} - {entry.content}" 
+                for entry in recent_commands
             ])
             summary_parts.append(f"Recent commands:\n{cmd_text}")
         

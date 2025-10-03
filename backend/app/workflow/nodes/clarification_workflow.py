@@ -9,6 +9,7 @@ import logging
 from typing import Dict, Any, Optional, List
 from app.workflow.response.workflow_result import WorkflowResult, WorkflowType
 from app.constants.audio_phrases import AudioPhraseType
+from app.dto.conversation_dto import ConversationHistory
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ class ClarificationWorkflow:
         self,
         clarification_message: str,
         session_id: str,
-        conversation_history: Optional[List[Dict[str, Any]]] = None
+        conversation_history: Optional[ConversationHistory] = None
     ) -> WorkflowResult:
         """
         Execute clarification workflow.
@@ -53,7 +54,7 @@ class ClarificationWorkflow:
                 workflow_type=WorkflowType.CLARIFICATION,
                 audio_phrase_type=AudioPhraseType.LLM_GENERATED,  # Use custom message
                 order_updated=False,
-                validation_errors=None
+                validation_errors=[]  # Empty list instead of None
             )
             
         except Exception as e:

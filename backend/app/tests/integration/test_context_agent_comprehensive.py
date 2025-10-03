@@ -1,6 +1,7 @@
 import pytest
 from app.workflow.agents.context_agent import ContextAgent, ContextAgentResult
 from app.config.settings import settings
+from app.dto.conversation_dto import ConversationHistory, ConversationRole
 
 # Skip all tests in this file if no OpenAI API key
 pytestmark = pytest.mark.skipif(
@@ -11,6 +12,14 @@ pytestmark = pytest.mark.skipif(
 class TestContextAgentComprehensive:
     """Comprehensive integration tests for ContextAgent with various scenarios"""
 
+    def _create_conversation_history(self, session_id: str, conversations: list) -> ConversationHistory:
+        """Helper method to create ConversationHistory from conversation data"""
+        history = ConversationHistory(session_id=session_id)
+        for conv in conversations:
+            role = ConversationRole.USER if conv["role"] == "customer" else ConversationRole.ASSISTANT
+            history.add_entry(role, conv["content"])
+        return history
+
     @pytest.fixture
     def context_agent(self):
         """Create ContextAgent instance for testing"""
@@ -19,38 +28,22 @@ class TestContextAgentComprehensive:
     @pytest.fixture
     def veggie_wrap_conversation_history(self):
         """Realistic conversation about veggie wrap"""
-        return [
-            {
-                "role": "customer",
-                "content": "Tell me about the veggie wrap"
-            },
-            {
-                "role": "assistant",
-                "content": "The veggie wrap is a healthy option with fresh lettuce, tomatoes, cucumbers, red onions, and our house-made hummus spread, all wrapped in a whole wheat tortilla. It's perfect for a light meal and comes with a side of mixed greens."
-            },
-            {
-                "role": "customer",
-                "content": "Okay I'll take two of those"
-            }
+        conversations = [
+            {"role": "customer", "content": "Tell me about the veggie wrap"},
+            {"role": "assistant", "content": "The veggie wrap is a healthy option with fresh lettuce, tomatoes, cucumbers, red onions, and our house-made hummus spread, all wrapped in a whole wheat tortilla. It's perfect for a light meal and comes with a side of mixed greens."},
+            {"role": "customer", "content": "Okay I'll take two of those"}
         ]
+        return self._create_conversation_history("test_session", conversations)
 
     @pytest.fixture
     def quantum_burger_conversation_history(self):
         """Realistic conversation about quantum burger with modifiers"""
-        return [
-            {
-                "role": "customer",
-                "content": "What's on the quantum burger?"
-            },
-            {
-                "role": "assistant",
-                "content": "The quantum burger comes with a beef patty, cosmic cheese, space sauce, quantum lettuce, and stellar onions on a stellar bun. It's our signature burger with a cosmic twist!"
-            },
-            {
-                "role": "customer",
-                "content": "Cool I'll take that but no cheese and extra lettuce."
-            }
+        conversations = [
+            {"role": "customer", "content": "What's on the quantum burger?"},
+            {"role": "assistant", "content": "The quantum burger comes with a beef patty, cosmic cheese, space sauce, quantum lettuce, and stellar onions on a stellar bun. It's our signature burger with a cosmic twist!"},
+            {"role": "customer", "content": "Cool I'll take that but no cheese and extra lettuce."}
         ]
+        return self._create_conversation_history("test_session", conversations)
 
     @pytest.fixture
     def multiple_items_conversation_history(self):
@@ -205,16 +198,11 @@ class TestContextAgentComprehensive:
     @pytest.fixture
     def unresolvable_conversation_history(self):
         """Conversation with minimal context for unresolvable scenario"""
-        return [
-            {
-                "role": "customer",
-                "content": "Hi there"
-            },
-            {
-                "role": "assistant",
-                "content": "Hello! Welcome to our drive-thru. What can I get for you today?"
-            }
+        conversations = [
+            {"role": "customer", "content": "Hi there"},
+            {"role": "assistant", "content": "Hello! Welcome to our drive-thru. What can I get for you today?"}
         ]
+        return self._create_conversation_history("test_session", conversations)
 
     @pytest.fixture
     def veggie_wrap_command_history(self):
@@ -702,7 +690,7 @@ class TestContextAgentComprehensive:
         result = await context_agent.resolve_context(
             user_input=user_input,
             conversation_history=noisy_conversation_history,
-            command_history=[],
+            command_history=ConversationHistory(session_id="test_session"),
             current_order=empty_current_order
         )
 
@@ -756,7 +744,7 @@ class TestContextAgentComprehensive:
         result = await context_agent.resolve_context(
             user_input=user_input,
             conversation_history=unresolvable_conversation_history,
-            command_history=[],
+            command_history=ConversationHistory(session_id="test_session"),
             current_order=empty_current_order
         )
 

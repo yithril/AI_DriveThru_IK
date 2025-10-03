@@ -12,6 +12,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from app.config.settings import settings
 from app.constants.audio_phrases import AudioPhraseType
+from app.dto.conversation_dto import ConversationHistory
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +39,8 @@ class RemoveItemResult(BaseModel):
 async def remove_item_agent(
     user_input: str,
     current_order: List[Dict[str, Any]],
-    conversation_history: Optional[List[Dict[str, Any]]] = None,
-    command_history: Optional[List[Dict[str, Any]]] = None
+    conversation_history: Optional[ConversationHistory] = None,
+    command_history: Optional[ConversationHistory] = None
 ) -> RemoveItemResult:
     """
     Parse a user's request to remove items from their order.
@@ -104,8 +105,8 @@ async def remove_item_agent(
 
 def _build_agent_context(
     current_order: List[Dict[str, Any]], 
-    conversation_history: Optional[List[Dict[str, Any]]] = None,
-    command_history: Optional[List[Dict[str, Any]]] = None
+    conversation_history: Optional[ConversationHistory] = None,
+    command_history: Optional[ConversationHistory] = None
 ) -> str:
     """Build context string for the agent"""
     
@@ -132,18 +133,18 @@ def _build_agent_context(
         context_parts.append("CURRENT ORDER: No items")
     
     # Conversation history
-    if conversation_history:
+    if conversation_history and not conversation_history.is_empty():
         context_parts.append("\nRECENT CONVERSATION:")
-        for turn in conversation_history[-3:]:  # Last 3 turns
-            role = turn.get("role", "unknown")
-            content = turn.get("content", "")[:100]  # Truncate long content
+        for entry in conversation_history.get_recent_entries(3):  # Last 3 turns
+            role = entry.role.value
+            content = entry.content[:100]  # Truncate long content
             context_parts.append(f"  {role}: {content}")
     
     # Command history
-    if command_history:
+    if command_history and not command_history.is_empty():
         context_parts.append("\nRECENT COMMANDS:")
-        for cmd in command_history[-3:]:  # Last 3 commands
-            action = cmd.get("action", "unknown")
+        for entry in command_history.get_recent_entries(3):  # Last 3 commands
+            action = entry.role.value
             context_parts.append(f"  - {action}")
     
     return "\n".join(context_parts)

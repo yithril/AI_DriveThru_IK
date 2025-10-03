@@ -14,13 +14,14 @@ from app.constants.intent_types import IntentType
 from app.workflow.response.intent_classification_response import IntentClassificationResult
 from app.workflow.prompts.intent_classification_prompts import get_intent_classification_prompt
 from app.config.settings import settings
+from app.dto.conversation_dto import ConversationHistory
 
 logger = logging.getLogger(__name__)
 
 
 async def intent_classification_agent(
     user_input: str,
-    conversation_history: Optional[List[Dict[str, Any]]] = None,
+    conversation_history: Optional[ConversationHistory] = None,
     order_items: Optional[List[Dict[str, Any]]] = None
 ) -> IntentClassificationResult:
     """
@@ -40,14 +41,37 @@ async def intent_classification_agent(
         IntentClassificationResult with intent, confidence, and cleansed input
     """
     try:
-        # Use empty lists if not provided
-        conversation_history = conversation_history or []
+        # Use empty ConversationHistory if not provided
+        if conversation_history is None:
+            conversation_history = ConversationHistory(session_id="")
         order_items = order_items or []
+        
+        # DEBUG: Log the input data
+        logger.info(f"DEBUG INTENT CLASSIFICATION INPUT:")
+        logger.info(f"  User input: '{user_input}'")
+        logger.info(f"  Conversation history length: {len(conversation_history)}")
+        logger.info(f"  Order items length: {len(order_items)}")
+        
+        # DEBUG: Log conversation history details
+        if not conversation_history.is_empty():
+            logger.info(f"  Conversation history:")
+            for i, entry in enumerate(conversation_history.get_recent_entries(3)):  # Last 3 entries
+                logger.info(f"    {i+1}. {entry.role.value}: {entry.content[:100]}...")
+        else:
+            logger.info(f"  Conversation history: EMPTY")
+        
+        # DEBUG: Log order items details
+        if order_items:
+            logger.info(f"  Order items:")
+            for i, item in enumerate(order_items[-3:]):  # Last 3 items
+                logger.info(f"    {i+1}. {item}")
+        else:
+            logger.info(f"  Order items: EMPTY")
         
         # Build minimal context for the LLM
         context = {
             "user_input": user_input,
-            "conversation_history": conversation_history[-5:],  # Last 5 turns max
+            "conversation_history": conversation_history.get_recent_entries(5),  # Last 5 turns max
             "order_items": order_items,
             "conversation_state": "Ordering"  # Simplified - could be made dynamic if needed
         }

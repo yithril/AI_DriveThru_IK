@@ -14,6 +14,7 @@ from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from app.workflow.response.question_response import QuestionResponse
 from app.config.settings import settings
 from app.constants.audio_phrases import AudioPhraseType
+from app.dto.conversation_dto import ConversationHistory
 
 logger = logging.getLogger(__name__)
 
@@ -150,7 +151,7 @@ async def question_agent(
     menu_service,
     ingredient_service,
     restaurant_service,
-    conversation_history: Optional[List[Dict[str, Any]]] = None,
+    conversation_history: Optional[ConversationHistory] = None,
     current_order: Optional[Dict[str, Any]] = None
 ) -> QuestionResponse:
     """
@@ -192,7 +193,9 @@ async def question_agent(
         order_summary = _format_order_summary(current_order) if current_order else "No items in order"
         
         # Build conversation context
-        history_text = _format_conversation_history(conversation_history or [])
+        if conversation_history is None:
+            conversation_history = ConversationHistory(session_id="")
+        history_text = _format_conversation_history(conversation_history)
         
         # Create tools with service bindings
         tools = create_question_tools(menu_service, ingredient_service)
@@ -340,19 +343,17 @@ def _format_order_summary(order: Dict[str, Any]) -> str:
     return f"Your order: {', '.join(item_list)}"
 
 
-def _format_conversation_history(history: List[Dict[str, Any]]) -> str:
+def _format_conversation_history(history: ConversationHistory) -> str:
     """Format conversation history"""
-    if not history:
+    if history.is_empty():
         return ""
     
     formatted = []
-    for turn in history[-3:]:  # Last 3 turns
-        user = turn.get("user", "")
-        ai = turn.get("ai", "")
-        if user:
-            formatted.append(f"Customer: {user}")
-        if ai:
-            formatted.append(f"Assistant: {ai}")
+    for entry in history.get_recent_entries(3):  # Last 3 turns
+        if entry.role.value == "user":
+            formatted.append(f"Customer: {entry.content}")
+        elif entry.role.value == "assistant":
+            formatted.append(f"Assistant: {entry.content}")
     
     return "\n".join(formatted)
 

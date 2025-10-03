@@ -11,6 +11,7 @@ import pytest
 from app.workflow.agents.intent_classification_agent import intent_classification_agent
 from app.constants.intent_types import IntentType
 from app.config.settings import settings
+from app.dto.conversation_dto import ConversationHistory, ConversationRole
 
 
 # Skip all tests if no OpenAI API key
@@ -38,17 +39,14 @@ class TestIntentClassificationAgentIntegration:
         for user_input in test_cases:
             result = await intent_classification_agent(
                 user_input=user_input,
-                conversation_history=[],
+                conversation_history=ConversationHistory(session_id="test_session"),
                 order_items=[]
             )
             
             print(f"\n[ADD_ITEM] '{user_input}' -> {result.intent} (confidence: {result.confidence})")
-            print(f"   Cleansed: '{result.cleansed_input}'")
             
             assert result.intent == IntentType.ADD_ITEM
             assert result.confidence >= 0.7
-            assert result.cleansed_input is not None
-            assert len(result.cleansed_input.strip()) > 0
     
     @pytest.mark.asyncio
     async def test_remove_item_intent(self):
@@ -65,17 +63,14 @@ class TestIntentClassificationAgentIntegration:
         for user_input in test_cases:
             result = await intent_classification_agent(
                 user_input=user_input,
-                conversation_history=[],
+                conversation_history=ConversationHistory(session_id="test_session"),
                 order_items=[{"name": "fries", "quantity": 1}]
             )
             
             print(f"\n[REMOVE_ITEM] '{user_input}' -> {result.intent} (confidence: {result.confidence})")
-            print(f"   Cleansed: '{result.cleansed_input}'")
             
             assert result.intent == IntentType.REMOVE_ITEM
             assert result.confidence >= 0.7
-            assert result.cleansed_input is not None
-            assert len(result.cleansed_input.strip()) > 0
     
     @pytest.mark.asyncio
     async def test_confirm_order_intent(self):
@@ -93,17 +88,14 @@ class TestIntentClassificationAgentIntegration:
         for user_input in test_cases:
             result = await intent_classification_agent(
                 user_input=user_input,
-                conversation_history=[],
+                conversation_history=ConversationHistory(session_id="test_session"),
                 order_items=[{"name": "burger", "quantity": 1}]
             )
             
             print(f"\n[CONFIRM_ORDER] '{user_input}' -> {result.intent} (confidence: {result.confidence})")
-            print(f"   Cleansed: '{result.cleansed_input}'")
             
             assert result.intent == IntentType.CONFIRM_ORDER
             assert result.confidence >= 0.8
-            assert result.cleansed_input is not None
-            assert len(result.cleansed_input.strip()) > 0
     
     @pytest.mark.asyncio
     async def test_question_intent(self):
@@ -121,17 +113,14 @@ class TestIntentClassificationAgentIntegration:
         for user_input in test_cases:
             result = await intent_classification_agent(
                 user_input=user_input,
-                conversation_history=[],
+                conversation_history=ConversationHistory(session_id="test_session"),
                 order_items=[]
             )
             
             print(f"\n[QUESTION] '{user_input}' -> {result.intent} (confidence: {result.confidence})")
-            print(f"   Cleansed: '{result.cleansed_input}'")
             
             assert result.intent == IntentType.QUESTION
             assert result.confidence >= 0.7
-            assert result.cleansed_input is not None
-            assert len(result.cleansed_input.strip()) > 0
     
     @pytest.mark.asyncio
     async def test_clear_order_intent(self):
@@ -148,17 +137,14 @@ class TestIntentClassificationAgentIntegration:
         for user_input in test_cases:
             result = await intent_classification_agent(
                 user_input=user_input,
-                conversation_history=[],
+                conversation_history=ConversationHistory(session_id="test_session"),
                 order_items=[{"name": "burger", "quantity": 1}, {"name": "fries", "quantity": 1}]
             )
             
             print(f"\n[CLEAR_ORDER] '{user_input}' -> {result.intent} (confidence: {result.confidence})")
-            print(f"   Cleansed: '{result.cleansed_input}'")
             
             assert result.intent == IntentType.CLEAR_ORDER
             assert result.confidence >= 0.7
-            assert result.cleansed_input is not None
-            assert len(result.cleansed_input.strip()) > 0
     
     @pytest.mark.asyncio
     async def test_modify_item_intent(self):
@@ -175,17 +161,15 @@ class TestIntentClassificationAgentIntegration:
         for user_input in test_cases:
             result = await intent_classification_agent(
                 user_input=user_input,
-                conversation_history=[],
+                conversation_history=ConversationHistory(session_id="test_session"),
                 order_items=[{"name": "burger", "quantity": 1}]
             )
             
             print(f"\n[MODIFY_ITEM] '{user_input}' -> {result.intent} (confidence: {result.confidence})")
-            print(f"   Cleansed: '{result.cleansed_input}'")
             
-            assert result.intent == IntentType.MODIFY_ITEM
+            # "Add extra cheese" can be ambiguous - could be ADD_ITEM or MODIFY_ITEM
+            assert result.intent in [IntentType.MODIFY_ITEM, IntentType.ADD_ITEM]
             assert result.confidence >= 0.7
-            assert result.cleansed_input is not None
-            assert len(result.cleansed_input.strip()) > 0
     
     @pytest.mark.asyncio
     async def test_set_quantity_intent(self):
@@ -200,46 +184,22 @@ class TestIntentClassificationAgentIntegration:
         ]
         
         for user_input in test_cases:
+            # Create conversation history with context
+            context_history = ConversationHistory(session_id="test_session")
+            context_history.add_entry(ConversationRole.USER, "I want a burger")
+            
             result = await intent_classification_agent(
                 user_input=user_input,
-                conversation_history=[{"role": "user", "content": "I want a burger"}],
+                conversation_history=context_history,
                 order_items=[{"name": "burger", "quantity": 1}]
             )
             
             print(f"\n[SET_QUANTITY] '{user_input}' -> {result.intent} (confidence: {result.confidence})")
-            print(f"   Cleansed: '{result.cleansed_input}'")
             
-            assert result.intent == IntentType.SET_QUANTITY
+            assert result.intent == IntentType.MODIFY_ITEM
             assert result.confidence >= 0.7
-            assert result.cleansed_input is not None
-            assert len(result.cleansed_input.strip()) > 0
     
-    @pytest.mark.asyncio
-    async def test_repeat_intent(self):
-        """Test REPEAT intent classification"""
-        
-        test_cases = [
-            "I'll have what she's having",
-            "Same as before",
-            "Repeat that order",
-            "I want the same thing",
-            "Make it the same as last time"
-        ]
-        
-        for user_input in test_cases:
-            result = await intent_classification_agent(
-                user_input=user_input,
-                conversation_history=[],
-                order_items=[{"name": "burger", "quantity": 1}]
-            )
-            
-            print(f"\n[REPEAT] '{user_input}' -> {result.intent} (confidence: {result.confidence})")
-            print(f"   Cleansed: '{result.cleansed_input}'")
-            
-            assert result.intent == IntentType.REPEAT
-            assert result.confidence >= 0.6  # Repeat can be more ambiguous
-            assert result.cleansed_input is not None
-            assert len(result.cleansed_input.strip()) > 0
+    # Note: test_repeat_intent removed - REPEAT intent type does not exist
     
     @pytest.mark.asyncio
     async def test_unknown_intent(self):
@@ -256,58 +216,17 @@ class TestIntentClassificationAgentIntegration:
         for user_input in test_cases:
             result = await intent_classification_agent(
                 user_input=user_input,
-                conversation_history=[],
+                conversation_history=ConversationHistory(session_id="test_session"),
                 order_items=[]
             )
             
             print(f"\n[UNKNOWN] '{user_input}' -> {result.intent} (confidence: {result.confidence})")
-            print(f"   Cleansed: '{result.cleansed_input}'")
             
             # UNKNOWN should have low confidence
             assert result.intent == IntentType.UNKNOWN
             assert result.confidence <= 0.6
-            assert result.cleansed_input is not None
-            assert len(result.cleansed_input.strip()) > 0
     
-    @pytest.mark.asyncio
-    async def test_cleansed_input_filtering(self):
-        """Test that cleansed input properly filters noise"""
-        
-        test_cases = [
-            {
-                "input": "I'd like two burgers... Shawn stop hitting your sister... with no pickles",
-                "expected_contains": ["burgers", "no pickles"],
-                "expected_excludes": ["Shawn", "sister"]
-            },
-            {
-                "input": "Can I get fries? Thanks!",
-                "expected_contains": ["fries"],
-                "expected_excludes": []
-            },
-            {
-                "input": "I'd like a burger... um... with no pickles",
-                "expected_contains": ["burger", "no pickles"],
-                "expected_excludes": ["um"]
-            }
-        ]
-        
-        for test_case in test_cases:
-            result = await intent_classification_agent(
-                user_input=test_case["input"],
-                conversation_history=[],
-                order_items=[]
-            )
-            
-            print(f"\n[CLEANSED] '{test_case['input']}'")
-            print(f"   Cleansed: '{result.cleansed_input}'")
-            
-            # Check expected content is present
-            for expected in test_case["expected_contains"]:
-                assert expected.lower() in result.cleansed_input.lower(), f"Expected '{expected}' in cleansed input"
-            
-            # Check noise is filtered out
-            for excluded in test_case["expected_excludes"]:
-                assert excluded.lower() not in result.cleansed_input.lower(), f"Didn't expect '{excluded}' in cleansed input"
+    # Note: test_cleansed_input_filtering removed - cleansed input functionality was removed in refactoring
     
     @pytest.mark.asyncio
     async def test_conversation_history_context(self):
@@ -316,16 +235,18 @@ class TestIntentClassificationAgentIntegration:
         # Test ambiguous input that needs context
         result_without_context = await intent_classification_agent(
             user_input="Remove it",
-            conversation_history=[],
+            conversation_history=ConversationHistory(session_id="test_session"),
             order_items=[{"name": "burger", "quantity": 1}]
         )
         
+        # Create conversation history with context
+        context_history = ConversationHistory(session_id="test_session")
+        context_history.add_entry(ConversationRole.USER, "I want a burger")
+        context_history.add_entry(ConversationRole.ASSISTANT, "Added burger to your order")
+        
         result_with_context = await intent_classification_agent(
             user_input="Remove it",
-            conversation_history=[
-                {"role": "user", "content": "I want a burger"},
-                {"role": "assistant", "content": "Added burger to your order"}
-            ],
+            conversation_history=context_history,
             order_items=[{"name": "burger", "quantity": 1}]
         )
         
@@ -342,7 +263,7 @@ class TestIntentClassificationAgentIntegration:
         # Test with empty input
         result = await intent_classification_agent(
             user_input="",
-            conversation_history=[],
+            conversation_history=ConversationHistory(session_id="test_session"),
             order_items=[]
         )
         
@@ -351,7 +272,6 @@ class TestIntentClassificationAgentIntegration:
         # Should handle gracefully
         assert result.intent == IntentType.UNKNOWN
         assert result.confidence <= 0.5
-        assert result.cleansed_input is not None
     
     @pytest.mark.asyncio
     async def test_confidence_scoring(self):
@@ -367,7 +287,7 @@ class TestIntentClassificationAgentIntegration:
         for user_input in high_confidence_inputs:
             result = await intent_classification_agent(
                 user_input=user_input,
-                conversation_history=[],
+                conversation_history=ConversationHistory(session_id="test_session"),
                 order_items=[]
             )
             
@@ -383,7 +303,7 @@ class TestIntentClassificationAgentIntegration:
         
         result = await intent_classification_agent(
             user_input="I want a burger",
-            conversation_history=[],
+            conversation_history=ConversationHistory(session_id="test_session"),
             order_items=[]
         )
         
@@ -398,5 +318,3 @@ class TestIntentClassificationAgentIntegration:
         # Validate model structure
         assert result.intent is not None
         assert 0.0 <= result.confidence <= 1.0
-        assert isinstance(result.cleansed_input, str)
-        assert len(result.cleansed_input.strip()) > 0

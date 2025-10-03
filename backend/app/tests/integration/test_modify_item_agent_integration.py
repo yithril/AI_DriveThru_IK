@@ -10,6 +10,7 @@ These tests use:
 import pytest
 from app.workflow.agents.modify_item_agent import modify_item_agent
 from app.config.settings import settings
+from app.dto.conversation_dto import ConversationHistory, ConversationRole
 
 
 # Skip all tests if no OpenAI API key
@@ -34,11 +35,14 @@ class TestModifyItemAgentIntegration:
     @pytest.fixture
     def sample_conversation_history(self):
         """Sample conversation history"""
-        return [
-            {"user": "I want a burger", "ai": "Added burger to your order"},
-            {"user": "And some fries", "ai": "Added fries to your order"},
-            {"user": "Make it two", "ai": "Updated burger quantity to 2"}
-        ]
+        history = ConversationHistory(session_id="test_session")
+        history.add_entry(ConversationRole.USER, "I want a burger")
+        history.add_entry(ConversationRole.ASSISTANT, "Added burger to your order")
+        history.add_entry(ConversationRole.USER, "And some fries")
+        history.add_entry(ConversationRole.ASSISTANT, "Added fries to your order")
+        history.add_entry(ConversationRole.USER, "Make it two")
+        history.add_entry(ConversationRole.ASSISTANT, "Updated burger quantity to 2")
+        return history
     
     @pytest.fixture
     def sample_command_history(self):
@@ -79,7 +83,7 @@ class TestModifyItemAgentIntegration:
         result = await modify_item_agent(
             user_input="Make the burger two",
             current_order=sample_order,
-            conversation_history=[],
+            conversation_history=ConversationHistory(session_id="test_session"),
             command_history=[]
         )
         
@@ -101,7 +105,7 @@ class TestModifyItemAgentIntegration:
         result = await modify_item_agent(
             user_input="Make the fries large",
             current_order=sample_order,
-            conversation_history=[],
+            conversation_history=ConversationHistory(session_id="test_session"),
             command_history=[]
         )
         
@@ -123,7 +127,7 @@ class TestModifyItemAgentIntegration:
         result = await modify_item_agent(
             user_input="No pickles on the burger",
             current_order=sample_order,
-            conversation_history=[],
+            conversation_history=ConversationHistory(session_id="test_session"),
             command_history=[]
         )
         
@@ -145,7 +149,7 @@ class TestModifyItemAgentIntegration:
         result = await modify_item_agent(
             user_input="Extra cheese and no pickles",
             current_order=sample_order,
-            conversation_history=[],
+            conversation_history=ConversationHistory(session_id="test_session"),
             command_history=[]
         )
         
@@ -167,7 +171,7 @@ class TestModifyItemAgentIntegration:
         result = await modify_item_agent(
             user_input="Make it large",
             current_order=sample_order,
-            conversation_history=[],
+            conversation_history=ConversationHistory(session_id="test_session"),
             command_history=[]
         )
         
@@ -232,7 +236,7 @@ class TestModifyItemAgentIntegration:
         result = await modify_item_agent(
             user_input="Make it two",
             current_order=[],
-            conversation_history=[],
+            conversation_history=ConversationHistory(session_id="test_session"),
             command_history=[]
         )
         
@@ -252,7 +256,7 @@ class TestModifyItemAgentIntegration:
         result = await modify_item_agent(
             user_input="Make the burger large with extra cheese and no pickles",
             current_order=sample_order,
-            conversation_history=[],
+            conversation_history=ConversationHistory(session_id="test_session"),
             command_history=[]
         )
         
@@ -276,7 +280,7 @@ class TestModifyItemAgentIntegration:
         result = await modify_item_agent(
             user_input="Make it two",
             current_order=[{"id": 1, "name": "Burger", "quantity": 1}],
-            conversation_history=[],
+            conversation_history=ConversationHistory(session_id="test_session"),
             command_history=[]
         )
         

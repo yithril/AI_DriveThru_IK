@@ -18,7 +18,9 @@ from app.services.context_service import ContextService
 from app.workflow.response.intent_classification_response import IntentClassificationResult
 from app.workflow.agents.context_agent import ContextAgentResult
 from app.workflow.response.workflow_result import WorkflowResult, WorkflowType
+from app.constants.audio_phrases import AudioPhraseType
 from app.workflow.nodes.clarification_workflow import ClarificationWorkflow
+from app.dto.conversation_dto import ConversationHistory
 
 logger = logging.getLogger(__name__)
 
@@ -41,8 +43,8 @@ class PreprocessingWorkflow:
         self,
         text_input: str,
         session_id: str,
-        conversation_history: list,
-        command_history: list,
+        conversation_history: ConversationHistory,
+        command_history: ConversationHistory,
         current_order: Optional[Dict[str, Any]] = None
     ) -> WorkflowResult:
         """
@@ -61,12 +63,29 @@ class PreprocessingWorkflow:
         try:
             self.logger.info(f"Preprocessing workflow starting for: '{text_input}'")
             
+            # DEBUG: Log input data
+            self.logger.info(f"DEBUG PREPROCESSING WORKFLOW:")
+            self.logger.info(f"  Text input: '{text_input}'")
+            self.logger.info(f"  Session ID: {session_id}")
+            self.logger.info(f"  Conversation history length: {len(conversation_history)}")
+            self.logger.info(f"  Command history length: {len(command_history)}")
+            if not conversation_history.is_empty():
+                self.logger.info(f"  Conversation history format:")
+                for i, entry in enumerate(conversation_history.get_recent_entries(2)):
+                    self.logger.info(f"    {i+1}. {entry.role.value}: {entry.content[:50]}...")
+            else:
+                self.logger.info(f"  Conversation history: EMPTY")
+            
             # Step 1: Noise filtering
             cleaned_input = await self.noise_filter_agent.filter_noise(text_input)
             self.logger.info(f"Noise filtering: '{text_input}' → '{cleaned_input}'")
             
             # Step 2: Intent classification
-            intent_result = await intent_classification_agent(cleaned_input)
+            intent_result = await intent_classification_agent(
+                user_input=cleaned_input,
+                conversation_history=conversation_history,
+                order_items=current_order.get('items', []) if current_order else []
+            )
             self.logger.info(f"Intent classification: {intent_result.intent.value}")
             
             # Step 3: Check if context resolution is needed
@@ -75,7 +94,7 @@ class PreprocessingWorkflow:
                 
                 # Step 4: Context resolution
                 context_result = await self.context_agent.resolve_context(
-                    utterance=cleaned_input,
+                    user_input=cleaned_input,
                     conversation_history=conversation_history,
                     command_history=command_history,
                     current_order=current_order
@@ -88,7 +107,9 @@ class PreprocessingWorkflow:
                     
                     return WorkflowResult(
                         success=True,
+                        message="",  # Empty message for preprocessing
                         workflow_type=WorkflowType.PREPROCESSING,
+                        audio_phrase_type=AudioPhraseType.ITEM_ADDED_SUCCESS,  # Default phrase type
                         processed_input=resolved_input,
                         intent=intent_result.intent,
                         needs_clarification=False
@@ -111,7 +132,9 @@ class PreprocessingWorkflow:
             
             return WorkflowResult(
                 success=True,
+                message="",  # Empty message for preprocessing
                 workflow_type=WorkflowType.PREPROCESSING,
+                audio_phrase_type=AudioPhraseType.ITEM_ADDED_SUCCESS,  # Default phrase type
                 processed_input=cleaned_input,
                 intent=intent_result.intent,
                 needs_clarification=False
@@ -123,7 +146,9 @@ class PreprocessingWorkflow:
             # Return error result
             return WorkflowResult(
                 success=False,
+                message=f"Preprocessing failed: {str(e)}",
                 workflow_type=WorkflowType.PREPROCESSING,
-                error_message=f"Preprocessing failed: {str(e)}",
+                audio_phrase_type=AudioPhraseType.SYSTEM_ERROR_RETRY,
+                error=f"Preprocessing failed: {str(e)}",
                 needs_clarification=False
             )

@@ -12,6 +12,7 @@ from app.services.order_session_service import OrderSessionService
 from app.workflow.response.workflow_result import RemoveItemWorkflowResult, WorkflowType, WorkflowResult
 from app.workflow.converters.order_data_converter import OrderDataConverter
 from app.constants.audio_phrases import AudioPhraseType
+from app.dto.conversation_dto import ConversationHistory
 
 logger = logging.getLogger(__name__)
 
@@ -26,8 +27,8 @@ class RemoveItemWorkflow:
         self,
         user_input: str,
         session_id: str,
-        conversation_history: Optional[List[Dict[str, Any]]] = None,
-        command_history: Optional[List[Dict[str, Any]]] = None
+        conversation_history: Optional[ConversationHistory] = None,
+        command_history: Optional[ConversationHistory] = None
     ) -> WorkflowResult:
         """
         Execute the remove item workflow.
@@ -61,8 +62,8 @@ class RemoveItemWorkflow:
             agent_result = await remove_item_agent(
                 user_input=user_input,
                 current_order=postgresql_order,
-                conversation_history=conversation_history or [],
-                command_history=command_history or []
+                conversation_history=conversation_history or ConversationHistory(session_id=session_id),
+                command_history=command_history or ConversationHistory(session_id=session_id)
             )
             
             if not agent_result.success:

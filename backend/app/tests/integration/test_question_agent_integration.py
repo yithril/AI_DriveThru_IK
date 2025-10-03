@@ -18,6 +18,7 @@ from app.tests.fixtures.database_fixtures import (
     test_services
 )
 from app.config.settings import settings
+from app.dto.conversation_dto import ConversationHistory, ConversationRole
 
 
 # Skip all tests in this file if no OpenAI API key
@@ -143,10 +144,11 @@ class TestQuestionAgentIntegration:
     ):
         """Test real API call with conversation history"""
         
-        conversation_history = [
-            {"user": "I'd like a burger", "ai": "Added Cosmic Burger to your order"},
-            {"user": "How much is it?", "ai": "The Cosmic Burger is $12.99"}
-        ]
+        conversation_history = ConversationHistory(session_id="test_session")
+        conversation_history.add_entry(ConversationRole.USER, "I'd like a burger")
+        conversation_history.add_entry(ConversationRole.ASSISTANT, "Added Cosmic Burger to your order")
+        conversation_history.add_entry(ConversationRole.USER, "How much is it?")
+        conversation_history.add_entry(ConversationRole.ASSISTANT, "The Cosmic Burger is $12.99")
         
         result = await question_agent(
             user_input="Do you have any specials?",

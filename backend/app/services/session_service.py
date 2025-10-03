@@ -5,6 +5,7 @@ Session Service - Redis-based session management for drive-thru workflow
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 import json
+from app.dto.conversation_dto import ConversationHistory, ConversationEntry, ConversationRole
 import logging
 
 logger = logging.getLogger(__name__)
@@ -273,19 +274,15 @@ class SessionService:
         
         try:
             # Get existing conversation history
-            conversation_key = f"session:{session_id}:conversation"
-            existing_history = await self.redis.get_json(conversation_key) or []
+            conversation_history = await self.get_conversation_history(session_id)
             
-            # Add new entry
-            new_entry = {
-                "timestamp": datetime.now().isoformat(),
-                "user_input": user_input,
-                "ai_response": ai_response
-            }
-            existing_history.append(new_entry)
+            # Add new entries (user and assistant)
+            conversation_history.add_entry(ConversationRole.USER, user_input)
+            conversation_history.add_entry(ConversationRole.ASSISTANT, ai_response)
             
             # Store updated history
-            success = await self.redis.set_json(conversation_key, existing_history, expire=ttl)
+            conversation_key = f"session:{session_id}:conversation"
+            success = await self.redis.set_json(conversation_key, conversation_history.to_dict(), expire=ttl)
             
             if success:
                 logger.info(f"Added conversation entry for session {session_id}")
@@ -298,7 +295,7 @@ class SessionService:
             logger.error(f"Error adding conversation entry for session {session_id}: {e}")
             return False
     
-    async def get_conversation_history(self, session_id: str) -> List[Dict[str, Any]]:
+    async def get_conversation_history(self, session_id: str) -> ConversationHistory:
         """
         Get conversation history for a session
         
@@ -306,20 +303,26 @@ class SessionService:
             session_id: Session ID
             
         Returns:
-            List of conversation entries
+            ConversationHistory object
         """
         if not await self.is_redis_available():
             logger.error("Redis not available - cannot get conversation history")
-            return []
+            return ConversationHistory(session_id=session_id)
         
         try:
             conversation_key = f"session:{session_id}:conversation"
-            return await self.redis.get_json(conversation_key) or []
+            data = await self.redis.get_json(conversation_key)
+            
+            if data:
+                return ConversationHistory.from_dict(data)
+            else:
+                return ConversationHistory(session_id=session_id)
+                
         except Exception as e:
             logger.error(f"Error getting conversation history for session {session_id}: {e}")
-            return []
+            return ConversationHistory(session_id=session_id)
     
-    async def get_command_history(self, session_id: str) -> List[Dict[str, Any]]:
+    async def get_command_history(self, session_id: str) -> ConversationHistory:
         """
         Get command history for a session (subset of conversation focused on actions)
         
@@ -327,18 +330,11 @@ class SessionService:
             session_id: Session ID
             
         Returns:
-            List of command entries
+            ConversationHistory object (same as conversation history for now)
         """
-        if not await self.is_redis_available():
-            logger.error("Redis not available - cannot get command history")
-            return []
-        
-        try:
-            command_key = f"session:{session_id}:commands"
-            return await self.redis.get_json(command_key) or []
-        except Exception as e:
-            logger.error(f"Error getting command history for session {session_id}: {e}")
-            return []
+        # For now, command history is the same as conversation history
+        # This can be refined later if we need separate command tracking
+        return await self.get_conversation_history(session_id)
     
     async def add_command_entry(
         self, 

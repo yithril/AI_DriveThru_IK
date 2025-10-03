@@ -34,24 +34,19 @@ const OrderComponent = React.forwardRef<{ refreshOrder: () => void }>((props, re
         
         // Map API data to frontend format
         const mappedItems = lineItems.map(item => {
-          // Calculate additional costs from modifiers
+          // Calculate additional costs from backend-provided modifier costs
           let additionalCost = 0;
           const customizations: string[] = [];
           const additionalCosts: { name: string; cost: number }[] = [];
           
-          if (item.modifications?.modifiers && Array.isArray(item.modifications.modifiers)) {
-            // Process each modifier to calculate additional cost
-            item.modifications.modifiers.forEach((modifier: [number, string]) => {
-              const [ingredientId, action] = modifier;
-              if (action === 'extra' || action === 'heavy' || action === 'double' || action === 'more' || action === 'additional') {
-                // For now, we'll use a simple mapping - in a real app, you'd fetch ingredient costs from API
-                // Based on the backend logs, cheese slice costs $0.50 extra
-                if (ingredientId === 279) { // Cheese Slice ID from the logs
-                  additionalCost += 0.50;
-                  additionalCosts.push({ name: 'extra cheese slice', cost: 0.50 });
-                }
-                // Add more ingredient mappings as needed
-              }
+          // Use backend-provided modifier cost breakdown
+          if (item.modifier_costs && Array.isArray(item.modifier_costs)) {
+            item.modifier_costs.forEach((modifierCost: any) => {
+              additionalCost += modifierCost.cost;
+              additionalCosts.push({ 
+                name: `${modifierCost.action} ${modifierCost.ingredient_name}`, 
+                cost: modifierCost.cost 
+              });
             });
           }
           

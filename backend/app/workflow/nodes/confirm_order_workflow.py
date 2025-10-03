@@ -15,6 +15,7 @@ from decimal import Decimal
 from app.services.order_session_service import OrderSessionService
 from app.workflow.response.workflow_result import WorkflowResult, WorkflowType
 from app.constants.audio_phrases import AudioPhraseType
+from app.dto.conversation_dto import ConversationHistory
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +50,7 @@ class ConfirmOrderWorkflow:
     async def execute(
         self, 
         session_id: str,
-        conversation_history: Optional[List[Dict[str, Any]]] = None
+        conversation_history: Optional[ConversationHistory] = None
     ) -> ConfirmOrderWorkflowResult:
         """
         Execute the confirm order workflow.
