@@ -1,0 +1,96 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: ai-drivethru-postgres
+    environment:
+      POSTGRES_DB: ai_drivethru
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: ai-drivethru-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Using AWS S3 directly (no LocalStack needed)
+
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ai-drivethru-backend
+    env_file:
+      - ./backend/.env
+    environment:
+      - POSTGRES_URL=postgres://postgres:postgres@postgres:5432/ai_drivethru
+      - REDIS_URL=redis://redis:6379
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - /app/__pycache__
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo 'Starting backend server...' &&
+        python main.py
+      "
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ai-drivethru-frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    environment:
+      - WATCHPACK_POLLING=true  # Enable polling for file changes
+      - CHOKIDAR_USEPOLLING=true  # Enable polling for chokidar
+    command: >
+      sh -c "
+        echo 'Cleaning up .next directory...' &&
+        rm -rf /app/.next &&
+        echo 'Installing dependencies...' &&
+        npm install &&
+        echo 'Starting frontend development server...' &&
+        npm run dev -- --hostname 0.0.0.0
+      "
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  default:
+    name: ai-drivethru-network

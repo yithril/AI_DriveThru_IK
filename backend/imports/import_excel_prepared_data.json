@@ -1,0 +1,1389 @@
+{
+  "restaurant": [
+    {
+      "name": "Quantum Burger",
+      "primary_color": "#00D1FF",
+      "secondary_color": "#12141A",
+      "logo_url": "logo.png",
+      "description": "The ultimate space-themed burger experience",
+      "is_active": true
+    }
+  ],
+  "categories": [
+    {
+      "name": "Sandwiches",
+      "description": "Delicious burgers, wraps, and sandwiches made with fresh ingredients",
+      "display_order": 1,
+      "is_active": true
+    },
+    {
+      "name": "Salads",
+      "description": "Fresh, crisp salads with premium toppings and dressings",
+      "display_order": 2,
+      "is_active": true
+    },
+    {
+      "name": "Sides",
+      "description": "Perfect accompaniments including fries, onion rings, and nuggets",
+      "display_order": 3,
+      "is_active": true
+    },
+    {
+      "name": "Drinks",
+      "description": "Refreshing beverages, shakes, and specialty drinks",
+      "display_order": 4,
+      "is_active": true
+    },
+    {
+      "name": "Meals",
+      "description": "Complete combo meals with your choice of main, side, and drink",
+      "display_order": 5,
+      "is_active": true
+    },
+    {
+      "name": "Desserts",
+      "description": "Sweet treats and indulgent desserts to end your meal perfectly",
+      "display_order": 6,
+      "is_active": true
+    }
+  ],
+  "ingredients": [
+    {
+      "name": "Beef Patty",
+      "description": "Fresh ground beef patty",
+      "allergen_type": null,
+      "is_allergen": false,
+      "unit_cost": 0.01
+    },
+    {
+      "name": "Burger Bun",
+      "description": "Soft sesame seed bun",
+      "allergen_type": "Gluten",
+      "is_allergen": true,
+      "unit_cost": 0.01
+    },
+    {
+      "name": "Cheese Slice",
+      "description": "American cheese slice",
+      "allergen_type": "Dairy",
+      "is_allergen": true,
+      "unit_cost": 0.01
+    },
+    {
+      "name": "Lettuce",
+      "description": "Fresh crisp lettuce",
+      "allergen_type": null,
+      "is_allergen": false,
+      "unit_cost": 0.0
+    },
+    {
+      "name": "Tomato",
+      "description": "Fresh sliced tomato",
+      "allergen_type": null,
+      "is_allergen": false,
+      "unit_cost": 0.0
+    },
+    {
+      "name": "Onion",
+      "description": "Fresh sliced onion",
+      "allergen_type": null,
+      "is_allergen": false,
+      "unit_cost": 0.0
+    },
+    {
+      "name": "Quantum Sauce",
+      "description": "Special quantum-powered sauce",
+      "allergen_type": null,
+      "is_allergen": false,
+      "unit_cost": 0.0
+    },
+    {
+      "name": "Chicken Patty",
+      "description": "Fresh grilled chicken patty",
+      "allergen_type": null,
+      "is_allergen": false,
+      "unit_cost": 0.01
+    },
+    {
+      "name": "Tortilla Wrap",
+      "description": "Soft flour tortilla wrap",
+      "allergen_type": "Gluten",
+      "is_allergen": true,
+      "unit_cost": 0.01
+    },
+    {
+      "name": "Veggie Mix",
+      "description": "Fresh mixed vegetables",
+      "allergen_type": null,
+      "is_allergen": false,
+      "unit_cost": 0.0
+    },
+    {
+      "name": "Meteor Sauce",
+      "description": "Spicy meteor sauce",
+      "allergen_type": null,
+      "is_allergen": false,
+      "unit_cost": 0.0
+    },
+    {
+      "name": "Potato Fries",
+      "description": "Golden crispy potato fries",
+      "allergen_type": null,
+      "is_allergen": false,
+      "unit_cost": 0.01
+    },
+    {
+      "name": "Onion Rings Batter",
+      "description": "Crispy batter for onion rings",
+      "allergen_type": "Gluten",
+      "is_allergen": true,
+      "unit_cost": 0.01
+    },
+    {
+      "name": "Nuggets Batter",
+      "description": "Crispy batter for nuggets",
+      "allergen_type": "Gluten",
+      "is_allergen": true,
+      "unit_cost": 0.01
+    },
+    {
+      "name": "Salad Greens",
+      "description": "Fresh mixed salad greens",
+      "allergen_type": null,
+      "is_allergen": false,
+      "unit_cost": 0.0
+    },
+    {
+      "name": "Starlight Dressing",
+      "description": "Creamy starlight dressing",
+      "allergen_type": "Dairy",
+      "is_allergen": true,
+      "unit_cost": 0.0
+    },
+    {
+      "name": "Ice Cream",
+      "description": "Premium vanilla ice cream",
+      "allergen_type": "Dairy",
+      "is_allergen": true,
+      "unit_cost": 0.01
+    },
+    {
+      "name": "Cookie Dough",
+      "description": "Fresh chocolate chip cookie dough",
+      "allergen_type": "Gluten",
+      "is_allergen": true,
+      "unit_cost": 0.01
+    },
+    {
+      "name": "Brownie Mix",
+      "description": "Rich chocolate brownie mix",
+      "allergen_type": "Gluten",
+      "is_allergen": true,
+      "unit_cost": 0.01
+    },
+    {
+      "name": "Berry Filling",
+      "description": "Sweet mixed berry filling",
+      "allergen_type": null,
+      "is_allergen": false,
+      "unit_cost": 0.01
+    },
+    {
+      "name": "Bacon",
+      "description": "Crispy smoked bacon strips",
+      "allergen_type": null,
+      "is_allergen": false,
+      "unit_cost": 0.01
+    },
+    {
+      "name": "Mushrooms",
+      "description": "Sautéed button mushrooms",
+      "allergen_type": null,
+      "is_allergen": false,
+      "unit_cost": 0.01
+    },
+    {
+      "name": "Fish Fillet",
+      "description": "Battered cod fillet",
+      "allergen_type": "Fish",
+      "is_allergen": true,
+      "unit_cost": 0.01
+    },
+    {
+      "name": "Avocado",
+      "description": "Fresh sliced avocado",
+      "allergen_type": null,
+      "is_allergen": false,
+      "unit_cost": 0.01
+    },
+    {
+      "name": "Arugula",
+      "description": "Fresh peppery arugula leaves",
+      "allergen_type": null,
+      "is_allergen": false,
+      "unit_cost": 0.0
+    }
+  ],
+  "menu_items": [
+    {
+      "name": "Quantum Cheeseburger",
+      "category_name": "Sandwiches",
+      "price": 7.99,
+      "description": "Juicy beef patty with cheese and Quantum sauce",
+      "image_url": "quantum-cheeseburger.png",
+      "is_available": true,
+      "is_upsell": false,
+      "is_special": true,
+      "sort_order": 1
+    },
+    {
+      "name": "Neon Double Burger",
+      "category_name": "Sandwiches",
+      "price": 9.99,
+      "description": "Two patties stacked high with neon sauce",
+      "image_url": "neon-double-burger.png",
+      "is_available": true,
+      "is_upsell": true,
+      "is_special": false,
+      "sort_order": 1
+    },
+    {
+      "name": "Veggie Nebula Wrap",
+      "category_name": "Sandwiches",
+      "price": 6.99,
+      "description": "A cosmic mix of grilled veggies in a wrap",
+      "image_url": "veggie-nebula-wrap.png",
+      "is_available": true,
+      "is_upsell": false,
+      "is_special": false,
+      "sort_order": 1
+    },
+    {
+      "name": "Spicy Meteor Chicken",
+      "category_name": "Sandwiches",
+      "price": 8.49,
+      "description": "Crispy chicken with fiery meteor sauce",
+      "image_url": "spicy-meteor-chicken.png",
+      "is_available": true,
+      "is_upsell": false,
+      "is_special": false,
+      "sort_order": 1
+    },
+    {
+      "name": "Galactic Fries",
+      "category_name": "Sides",
+      "price": 2.99,
+      "description": "Crispy golden fries",
+      "image_url": "galactic-fries.png",
+      "is_available": true,
+      "is_upsell": true,
+      "is_special": false,
+      "sort_order": 1
+    },
+    {
+      "name": "Cosmic Onion Rings",
+      "category_name": "Sides",
+      "price": 3.49,
+      "description": "Crispy battered onion rings",
+      "image_url": "cosmic-onion-rings.png",
+      "is_available": true,
+      "is_upsell": false,
+      "is_special": true,
+      "sort_order": 1
+    },
+    {
+      "name": "Astro Nuggets",
+      "category_name": "Sides",
+      "price": 4.49,
+      "description": "Chicken nuggets with star dust dip",
+      "image_url": "astro-nuggets.png",
+      "is_available": true,
+      "is_upsell": true,
+      "is_special": false,
+      "sort_order": 1
+    },
+    {
+      "name": "Starlight Salad",
+      "category_name": "Salads",
+      "price": 3.99,
+      "description": "Fresh greens with starlight dressing",
+      "image_url": "starlight-salad.png",
+      "is_available": true,
+      "is_upsell": false,
+      "is_special": false,
+      "sort_order": 1
+    },
+    {
+      "name": "Lunar Lemonade",
+      "category_name": "Drinks",
+      "price": 1.99,
+      "description": "Refreshing lemonade",
+      "image_url": "lunar-lemonade.png",
+      "is_available": true,
+      "is_upsell": true,
+      "is_special": false,
+      "sort_order": 1
+    },
+    {
+      "name": "Quantum Cola",
+      "category_name": "Drinks",
+      "price": 1.79,
+      "description": "Signature cola drink",
+      "image_url": "quantum-cola.png",
+      "is_available": true,
+      "is_upsell": true,
+      "is_special": false,
+      "sort_order": 1
+    },
+    {
+      "name": "Milky Way Shake",
+      "category_name": "Drinks",
+      "price": 3.99,
+      "description": "Vanilla shake with cosmic sprinkles",
+      "image_url": "milky-way-shake.png",
+      "is_available": true,
+      "is_upsell": true,
+      "is_special": false,
+      "sort_order": 1
+    },
+    {
+      "name": "Rocket Fuel Coffee",
+      "category_name": "Drinks",
+      "price": 2.49,
+      "description": "Strong brewed coffee",
+      "image_url": "rocket-fuel-coffee.png",
+      "is_available": true,
+      "is_upsell": false,
+      "is_special": false,
+      "sort_order": 1
+    },
+    {
+      "name": "Asteroid Cookie",
+      "category_name": "Desserts",
+      "price": 1.49,
+      "description": "Chocolate chip cookie from the stars",
+      "image_url": "asteroid-cookie.png",
+      "is_available": true,
+      "is_upsell": true,
+      "is_special": false,
+      "sort_order": 1
+    },
+    {
+      "name": "Black Hole Brownie",
+      "category_name": "Desserts",
+      "price": 2.49,
+      "description": "Rich fudge brownie",
+      "image_url": "black-hole-brownie.png",
+      "is_available": true,
+      "is_upsell": false,
+      "is_special": false,
+      "sort_order": 1
+    },
+    {
+      "name": "Nova Sundae",
+      "category_name": "Desserts",
+      "price": 3.49,
+      "description": "Ice cream with galactic toppings",
+      "image_url": "nova-sundae.png",
+      "is_available": true,
+      "is_upsell": true,
+      "is_special": false,
+      "sort_order": 1
+    },
+    {
+      "name": "Galaxy Pie",
+      "category_name": "Desserts",
+      "price": 2.99,
+      "description": "Slice of sweet berry pie",
+      "image_url": "galaxy-pie.png",
+      "is_available": true,
+      "is_upsell": false,
+      "is_special": false,
+      "sort_order": 1
+    },
+    {
+      "name": "Burger Combo Meal",
+      "category_name": "Meals",
+      "price": 11.99,
+      "description": "Cheeseburger, fries, and drink",
+      "image_url": "burger-combo-meal.png",
+      "is_available": true,
+      "is_upsell": true,
+      "is_special": false,
+      "sort_order": 1
+    },
+    {
+      "name": "Chicken Combo Meal",
+      "category_name": "Meals",
+      "price": 10.99,
+      "description": "Spicy chicken sandwich, nuggets, and drink",
+      "image_url": "chicken-combo-meal.png",
+      "is_available": true,
+      "is_upsell": true,
+      "is_special": false,
+      "sort_order": 1
+    },
+    {
+      "name": "Veggie Combo Meal",
+      "category_name": "Meals",
+      "price": 9.99,
+      "description": "Veggie wrap, salad, and lemonade",
+      "image_url": "veggie-combo-meal.png",
+      "is_available": true,
+      "is_upsell": true,
+      "is_special": true,
+      "sort_order": 1
+    },
+    {
+      "name": "Family Pack",
+      "category_name": "Meals",
+      "price": 24.99,
+      "description": "4 burgers, 2 fries, 2 drinks",
+      "image_url": "family-pack.png",
+      "is_available": true,
+      "is_upsell": true,
+      "is_special": false,
+      "sort_order": 1
+    },
+    {
+      "name": "Quantum BBQ Bacon Burger",
+      "category_name": "Sandwiches",
+      "price": 8.99,
+      "description": "Beef patty with BBQ sauce and crispy bacon",
+      "image_url": "mushroom_burger.png",
+      "is_available": true,
+      "is_upsell": false,
+      "is_special": false,
+      "sort_order": 2
+    },
+    {
+      "name": "Black Hole Mushroom Swiss",
+      "category_name": "Sandwiches",
+      "price": 7.99,
+      "description": "Beef patty with sautéed mushrooms and Swiss cheese",
+      "image_url": "mushroom_burger.png",
+      "is_available": true,
+      "is_upsell": false,
+      "is_special": false,
+      "sort_order": 3
+    },
+    {
+      "name": "Solar Veggie Burger",
+      "category_name": "Sandwiches",
+      "price": 6.99,
+      "description": "Plant-based patty with fresh vegetables",
+      "image_url": "veggie_burger.png",
+      "is_available": true,
+      "is_upsell": false,
+      "is_special": true,
+      "sort_order": 4
+    },
+    {
+      "name": "Meteor Deluxe Chicken",
+      "category_name": "Sandwiches",
+      "price": 8.49,
+      "description": "Crispy chicken breast with deluxe toppings",
+      "image_url": "meteor_deluxe_chicken.png",
+      "is_available": true,
+      "is_upsell": false,
+      "is_special": false,
+      "sort_order": 5
+    },
+    {
+      "name": "Cosmic Fish Sandwich",
+      "category_name": "Sandwiches",
+      "price": 7.49,
+      "description": "Battered fish fillet with tartar sauce",
+      "image_url": "fish_sandwich.png",
+      "is_available": true,
+      "is_upsell": false,
+      "is_special": false,
+      "sort_order": 6
+    },
+    {
+      "name": "Nebula Falafel Pita",
+      "category_name": "Sandwiches",
+      "price": 6.99,
+      "description": "Falafel patties in pita with tahini sauce",
+      "image_url": "falafel_delight.png",
+      "is_available": true,
+      "is_upsell": false,
+      "is_special": true,
+      "sort_order": 7
+    },
+    {
+      "name": "Galaxy Turkey Club",
+      "category_name": "Sandwiches",
+      "price": 7.99,
+      "description": "Turkey breast with bacon, lettuce, and tomato",
+      "image_url": "turkey_club.png",
+      "is_available": true,
+      "is_upsell": false,
+      "is_special": false,
+      "sort_order": 8
+    },
+    {
+      "name": "Stellar Strawberry Shake",
+      "category_name": "Drinks",
+      "price": 3.99,
+      "description": "Strawberry milkshake with whipped cream",
+      "image_url": "strawberry_milkshake.png",
+      "is_available": true,
+      "is_upsell": true,
+      "is_special": false,
+      "sort_order": 2
+    },
+    {
+      "name": "Mocha Milky Way Shake",
+      "category_name": "Drinks",
+      "price": 4.49,
+      "description": "Chocolate mocha shake with coffee flavor",
+      "image_url": "chocolate_shake.png",
+      "is_available": true,
+      "is_upsell": true,
+      "is_special": false,
+      "sort_order": 3
+    },
+    {
+      "name": "Iced Meteor Tea",
+      "category_name": "Drinks",
+      "price": 2.49,
+      "description": "Refreshing iced tea with lemon",
+      "image_url": "ice_tea.png",
+      "is_available": true,
+      "is_upsell": false,
+      "is_special": false,
+      "sort_order": 4
+    },
+    {
+      "name": "Meteor Caesar Salad",
+      "category_name": "Salads",
+      "price": 4.99,
+      "description": "Classic Caesar salad with croutons and parmesan",
+      "image_url": "caesar_salad.png",
+      "is_available": true,
+      "is_upsell": false,
+      "is_special": false,
+      "sort_order": 2
+    },
+    {
+      "name": "Quasar Greek Salad",
+      "category_name": "Salads",
+      "price": 5.49,
+      "description": "Fresh Greek salad with feta and olives",
+      "image_url": "greek_salad.png",
+      "is_available": true,
+      "is_upsell": false,
+      "is_special": false,
+      "sort_order": 3
+    }
+  ],
+  "menu_item_ingredients": [
+    {
+      "menu_item_name": "Quantum Cheeseburger",
+      "ingredient_name": "Beef Patty",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Quantum Cheeseburger",
+      "ingredient_name": "Burger Bun",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Quantum Cheeseburger",
+      "ingredient_name": "Cheese Slice",
+      "quantity": 1.0,
+      "unit": "slice",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Quantum Cheeseburger",
+      "ingredient_name": "Lettuce",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Quantum Cheeseburger",
+      "ingredient_name": "Tomato",
+      "quantity": 1.0,
+      "unit": "slice",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Quantum Cheeseburger",
+      "ingredient_name": "Quantum Sauce",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Neon Double Burger",
+      "ingredient_name": "Beef Patty",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Neon Double Burger",
+      "ingredient_name": "Beef Patty",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Neon Double Burger",
+      "ingredient_name": "Burger Bun",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Neon Double Burger",
+      "ingredient_name": "Cheese Slice",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Veggie Nebula Wrap",
+      "ingredient_name": "Tortilla Wrap",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Veggie Nebula Wrap",
+      "ingredient_name": "Veggie Mix",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Spicy Meteor Chicken",
+      "ingredient_name": "Chicken Patty",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Spicy Meteor Chicken",
+      "ingredient_name": "Burger Bun",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Spicy Meteor Chicken",
+      "ingredient_name": "Meteor Sauce",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Galactic Fries",
+      "ingredient_name": "Potato Fries",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Cosmic Onion Rings",
+      "ingredient_name": "Onion Rings Batter",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Astro Nuggets",
+      "ingredient_name": "Nuggets Batter",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Starlight Salad",
+      "ingredient_name": "Salad Greens",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Starlight Salad",
+      "ingredient_name": "Starlight Dressing",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Milky Way Shake",
+      "ingredient_name": "Ice Cream",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Asteroid Cookie",
+      "ingredient_name": "Cookie Dough",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Black Hole Brownie",
+      "ingredient_name": "Brownie Mix",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Nova Sundae",
+      "ingredient_name": "Ice Cream",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Galaxy Pie",
+      "ingredient_name": "Berry Filling",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Burger Combo Meal",
+      "ingredient_name": "Beef Patty",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Burger Combo Meal",
+      "ingredient_name": "Burger Bun",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Burger Combo Meal",
+      "ingredient_name": "Cheese Slice",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Burger Combo Meal",
+      "ingredient_name": "Potato Fries",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Burger Combo Meal",
+      "ingredient_name": "Quantum Sauce",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Chicken Combo Meal",
+      "ingredient_name": "Chicken Patty",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Chicken Combo Meal",
+      "ingredient_name": "Burger Bun",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Chicken Combo Meal",
+      "ingredient_name": "Meteor Sauce",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Chicken Combo Meal",
+      "ingredient_name": "Nuggets Batter",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Veggie Combo Meal",
+      "ingredient_name": "Tortilla Wrap",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Veggie Combo Meal",
+      "ingredient_name": "Veggie Mix",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Veggie Combo Meal",
+      "ingredient_name": "Salad Greens",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Veggie Combo Meal",
+      "ingredient_name": "Starlight Dressing",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Family Pack",
+      "ingredient_name": "Beef Patty",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Family Pack",
+      "ingredient_name": "Burger Bun",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Quantum BBQ Bacon Burger",
+      "ingredient_name": "Beef Patty",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Quantum BBQ Bacon Burger",
+      "ingredient_name": "Burger Bun",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Quantum BBQ Bacon Burger",
+      "ingredient_name": "Bacon",
+      "quantity": 2.0,
+      "unit": "strip",
+      "additional_cost": 0.5,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Quantum BBQ Bacon Burger",
+      "ingredient_name": "Cheese Slice",
+      "quantity": 1.0,
+      "unit": "slice",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Quantum BBQ Bacon Burger",
+      "ingredient_name": "Lettuce",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Quantum BBQ Bacon Burger",
+      "ingredient_name": "Tomato",
+      "quantity": 1.0,
+      "unit": "slice",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Black Hole Mushroom Swiss",
+      "ingredient_name": "Beef Patty",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Black Hole Mushroom Swiss",
+      "ingredient_name": "Burger Bun",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Black Hole Mushroom Swiss",
+      "ingredient_name": "Cheese Slice",
+      "quantity": 2.0,
+      "unit": "slice",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Black Hole Mushroom Swiss",
+      "ingredient_name": "Lettuce",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Black Hole Mushroom Swiss",
+      "ingredient_name": "Mushrooms",
+      "quantity": 2.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Solar Veggie Burger",
+      "ingredient_name": "Burger Bun",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Solar Veggie Burger",
+      "ingredient_name": "Veggie Mix",
+      "quantity": 1.0,
+      "unit": "patty",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Solar Veggie Burger",
+      "ingredient_name": "Lettuce",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Solar Veggie Burger",
+      "ingredient_name": "Tomato",
+      "quantity": 2.0,
+      "unit": "slice",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Solar Veggie Burger",
+      "ingredient_name": "Avocado",
+      "quantity": 0.5,
+      "unit": "piece",
+      "additional_cost": 0.5,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Solar Veggie Burger",
+      "ingredient_name": "Arugula",
+      "quantity": 1.0,
+      "unit": "handful",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Meteor Deluxe Chicken",
+      "ingredient_name": "Chicken Patty",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Meteor Deluxe Chicken",
+      "ingredient_name": "Burger Bun",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Meteor Deluxe Chicken",
+      "ingredient_name": "Cheese Slice",
+      "quantity": 1.0,
+      "unit": "slice",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Meteor Deluxe Chicken",
+      "ingredient_name": "Lettuce",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Meteor Deluxe Chicken",
+      "ingredient_name": "Tomato",
+      "quantity": 1.0,
+      "unit": "slice",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Cosmic Fish Sandwich",
+      "ingredient_name": "Fish Fillet",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Cosmic Fish Sandwich",
+      "ingredient_name": "Burger Bun",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Cosmic Fish Sandwich",
+      "ingredient_name": "Lettuce",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Cosmic Fish Sandwich",
+      "ingredient_name": "Tomato",
+      "quantity": 1.0,
+      "unit": "slice",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Nebula Falafel Pita",
+      "ingredient_name": "Tortilla Wrap",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Nebula Falafel Pita",
+      "ingredient_name": "Veggie Mix",
+      "quantity": 3.0,
+      "unit": "ball",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Nebula Falafel Pita",
+      "ingredient_name": "Lettuce",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Nebula Falafel Pita",
+      "ingredient_name": "Tomato",
+      "quantity": 2.0,
+      "unit": "slice",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Galaxy Turkey Club",
+      "ingredient_name": "Burger Bun",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Galaxy Turkey Club",
+      "ingredient_name": "Cheese Slice",
+      "quantity": 1.0,
+      "unit": "slice",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Galaxy Turkey Club",
+      "ingredient_name": "Bacon",
+      "quantity": 2.0,
+      "unit": "strip",
+      "additional_cost": 0.5,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Galaxy Turkey Club",
+      "ingredient_name": "Lettuce",
+      "quantity": 1.0,
+      "unit": "piece",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Galaxy Turkey Club",
+      "ingredient_name": "Tomato",
+      "quantity": 2.0,
+      "unit": "slice",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Stellar Strawberry Shake",
+      "ingredient_name": "Ice Cream",
+      "quantity": 1.0,
+      "unit": "scoop",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Mocha Milky Way Shake",
+      "ingredient_name": "Ice Cream",
+      "quantity": 1.0,
+      "unit": "scoop",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Meteor Caesar Salad",
+      "ingredient_name": "Salad Greens",
+      "quantity": 1.0,
+      "unit": "bowl",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Meteor Caesar Salad",
+      "ingredient_name": "Cheese Slice",
+      "quantity": 1.0,
+      "unit": "slice",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Quasar Greek Salad",
+      "ingredient_name": "Salad Greens",
+      "quantity": 1.0,
+      "unit": "bowl",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Quasar Greek Salad",
+      "ingredient_name": "Cheese Slice",
+      "quantity": 1.0,
+      "unit": "slice",
+      "additional_cost": 0.0,
+      "is_optional": false
+    },
+    {
+      "menu_item_name": "Quasar Greek Salad",
+      "ingredient_name": "Tomato",
+      "quantity": 3.0,
+      "unit": "slice",
+      "additional_cost": 0.0,
+      "is_optional": false
+    }
+  ],
+  "inventory": [
+    {
+      "ingredient_name": "Beef Patty",
+      "current_stock": 120.0,
+      "min_stock": 30.0
+    },
+    {
+      "ingredient_name": "Burger Bun",
+      "current_stock": 200.0,
+      "min_stock": 40.0
+    },
+    {
+      "ingredient_name": "Cheese Slice",
+      "current_stock": 150.0,
+      "min_stock": 30.0
+    },
+    {
+      "ingredient_name": "Lettuce",
+      "current_stock": 60.0,
+      "min_stock": 10.0
+    },
+    {
+      "ingredient_name": "Tomato",
+      "current_stock": 80.0,
+      "min_stock": 15.0
+    },
+    {
+      "ingredient_name": "Onion",
+      "current_stock": 50.0,
+      "min_stock": 10.0
+    },
+    {
+      "ingredient_name": "Quantum Sauce",
+      "current_stock": 100.0,
+      "min_stock": 20.0
+    },
+    {
+      "ingredient_name": "Chicken Patty",
+      "current_stock": 90.0,
+      "min_stock": 20.0
+    },
+    {
+      "ingredient_name": "Tortilla Wrap",
+      "current_stock": 70.0,
+      "min_stock": 15.0
+    },
+    {
+      "ingredient_name": "Veggie Mix",
+      "current_stock": 40.0,
+      "min_stock": 10.0
+    },
+    {
+      "ingredient_name": "Meteor Sauce",
+      "current_stock": 60.0,
+      "min_stock": 10.0
+    },
+    {
+      "ingredient_name": "Potato Fries",
+      "current_stock": 200.0,
+      "min_stock": 50.0
+    },
+    {
+      "ingredient_name": "Onion Rings Batter",
+      "current_stock": 100.0,
+      "min_stock": 20.0
+    },
+    {
+      "ingredient_name": "Nuggets Batter",
+      "current_stock": 100.0,
+      "min_stock": 20.0
+    },
+    {
+      "ingredient_name": "Salad Greens",
+      "current_stock": 50.0,
+      "min_stock": 10.0
+    },
+    {
+      "ingredient_name": "Starlight Dressing",
+      "current_stock": 40.0,
+      "min_stock": 10.0
+    },
+    {
+      "ingredient_name": "Ice Cream",
+      "current_stock": 80.0,
+      "min_stock": 20.0
+    },
+    {
+      "ingredient_name": "Cookie Dough",
+      "current_stock": 60.0,
+      "min_stock": 15.0
+    },
+    {
+      "ingredient_name": "Brownie Mix",
+      "current_stock": 60.0,
+      "min_stock": 15.0
+    },
+    {
+      "ingredient_name": "Berry Filling",
+      "current_stock": 30.0,
+      "min_stock": 10.0
+    }
+  ],
+  "tags": [
+    {
+      "name": "Popular",
+      "color": "#FF5733",
+      "description": "Customer favorites and bestsellers"
+    },
+    {
+      "name": "New",
+      "color": "#33FF57",
+      "description": "Recently added menu items"
+    },
+    {
+      "name": "Spicy",
+      "color": "#FF3333",
+      "description": "Spicy and hot menu items"
+    },
+    {
+      "name": "Healthy",
+      "color": "#33C1FF",
+      "description": "Healthy and nutritious options"
+    }
+  ],
+  "menu_item_tags": [
+    {
+      "menu_item_name": "Neon Double Burger",
+      "tag_name": "Popular"
+    },
+    {
+      "menu_item_name": "Spicy Meteor Chicken",
+      "tag_name": "Spicy"
+    },
+    {
+      "menu_item_name": "Starlight Salad",
+      "tag_name": "Healthy"
+    },
+    {
+      "menu_item_name": "Milky Way Shake",
+      "tag_name": "Popular"
+    },
+    {
+      "menu_item_name": "Asteroid Cookie",
+      "tag_name": "Popular"
+    },
+    {
+      "menu_item_name": "Nova Sundae",
+      "tag_name": "New"
+    }
+  ]
+}
