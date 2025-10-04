@@ -13,6 +13,8 @@ from typing import Dict, Any, Optional, List
 from app.workflow.agents.modify_item_agent import modify_item_agent
 from app.services.modify_item_service import ModifyItemService
 from app.services.order_session_service import OrderSessionService
+from app.services.menu_service import MenuService
+from app.services.ingredient_service import IngredientService
 from app.workflow.converters.order_data_converter import OrderDataConverter
 from app.dto.modify_item_dto import ModifyItemResultDto
 from app.workflow.response.workflow_result import ModifyItemWorkflowResult
@@ -25,15 +27,25 @@ logger = logging.getLogger(__name__)
 class ModifyItemWorkflow:
     """Workflow for handling item modifications in drive-thru orders"""
     
-    def __init__(self, order_session_service: OrderSessionService):
+    def __init__(
+        self, 
+        order_session_service: OrderSessionService,
+        menu_service: MenuService = None,
+        ingredient_service: IngredientService = None
+    ):
         """
         Initialize the workflow
         
         Args:
             order_session_service: Service for managing Redis-based orders
+            menu_service: Service for menu operations
+            ingredient_service: Service for ingredient operations
         """
         self.order_session_service = order_session_service
-        self.modify_item_service = ModifyItemService()
+        self.modify_item_service = ModifyItemService(
+            menu_service=menu_service,
+            ingredient_service=ingredient_service
+        )
     
     async def execute(
         self, 

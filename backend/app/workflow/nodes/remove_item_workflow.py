@@ -86,27 +86,31 @@ class RemoveItemWorkflow:
                     audio_phrase_type=AudioPhraseType.ITEM_REMOVE_CLARIFICATION
                 )
             
-            # Step 5: Remove items from order
+            # Step 5: Find items to remove based on agent result
+            logger.info(f"DEBUG: Agent result - target_item_names: {agent_result.target_item_names}, modifier_specs: {agent_result.modifier_specs}")
+            items_to_remove = self._find_items_to_remove(postgresql_order, agent_result)
+            logger.info(f"DEBUG: Found {len(items_to_remove)} items to remove")
+            
+            if not items_to_remove:
+                return WorkflowResult(
+                    success=False,
+                    message="I couldn't find the items you want to remove. Could you please be more specific?",
+                    workflow_type=WorkflowType.REMOVE_ITEM,
+                    audio_phrase_type=AudioPhraseType.ITEM_REMOVE_ERROR
+                )
+            
+            # Step 6: Remove items from order
             removed_items = []
             failed_removals = []
             
-            for item_id in agent_result.target_item_ids:
-                success = await self._remove_single_item_from_order(session_id, item_id)
+            for item in items_to_remove:
+                success = await self._remove_single_item_from_order(session_id, item["id"])
                 if success:
-                    # Find the item details for response
-                    item_details = next(
-                        (item for item in postgresql_order if item.get("id") == item_id),
-                        {"name": "Unknown Item", "quantity": 1}
-                    )
-                    removed_items.append(item_details)
+                    removed_items.append(item)
                 else:
-                    item_details = next(
-                        (item for item in postgresql_order if item.get("id") == item_id),
-                        {"name": "Unknown Item", "quantity": 1}
-                    )
-                    failed_removals.append(item_details)
+                    failed_removals.append(item)
             
-            # Step 6: Build response
+            # Step 7: Build response
             if removed_items and not failed_removals:
                 # All items removed successfully
                 success_message = self._build_success_message(removed_items)
@@ -214,6 +218,80 @@ class RemoveItemWorkflow:
             logger.error(f"Error removing item {item_id} from session {session_id}: {e}", exc_info=True)
             return False
     
+    def _find_items_to_remove(self, current_order: List[Dict[str, Any]], agent_result) -> List[Dict[str, Any]]:
+        """
+        Find items to remove based on agent result, including modifier specifications.
+        
+        Args:
+            current_order: Current order items
+            agent_result: Result from RemoveItemAgent
+            
+        Returns:
+            List of items to remove
+        """
+        items_to_remove = []
+        
+        # If agent provided specific item IDs, use those
+        if agent_result.target_item_ids:
+            for item_id in agent_result.target_item_ids:
+                item = next((item for item in current_order if item.get("id") == item_id), None)
+                if item:
+                    items_to_remove.append(item)
+            return items_to_remove
+        
+        # Otherwise, match by item names and modifier specifications
+        for i, target_name in enumerate(agent_result.target_item_names):
+            modifier_spec = agent_result.modifier_specs[i] if i < len(agent_result.modifier_specs) else None
+            logger.info(f"DEBUG: Processing target_name='{target_name}', modifier_spec='{modifier_spec}'")
+            
+            # Find items matching the target name
+            matching_items = []
+            for item in current_order:
+                item_name = item.get("name", "").lower()
+                if target_name.lower() in item_name or item_name in target_name.lower():
+                    matching_items.append(item)
+            
+            logger.info(f"DEBUG: Found {len(matching_items)} matching items for '{target_name}'")
+            
+            if not matching_items:
+                continue
+            
+            # If no modifier specified, take the first match
+            if not modifier_spec:
+                logger.info(f"DEBUG: No modifier specified, taking first match: {matching_items[0].get('id')}")
+                items_to_remove.append(matching_items[0])
+                continue
+            
+            # Find item with matching modifier specification
+            modifier_spec_lower = modifier_spec.lower()
+            logger.info(f"DEBUG: Looking for modifier '{modifier_spec_lower}'")
+            for item in matching_items:
+                modifications = item.get("modifications", {})
+                ingredient_mods = modifications.get("ingredient_modifications", "")
+                logger.info(f"DEBUG: Item {item.get('id')} has ingredient_modifications='{ingredient_mods}'")
+                
+                # Check if the modifier specification matches
+                # Use exact matching to avoid false positives
+                ingredient_mods_lower = ingredient_mods.lower()
+                if modifier_spec_lower == ingredient_mods_lower:
+                    logger.info(f"DEBUG: Found exact match! Item {item.get('id')} matches modifier '{modifier_spec_lower}'")
+                    items_to_remove.append(item)
+                    break
+                elif modifier_spec_lower in ingredient_mods_lower:
+                    # Check if it's a word boundary match, not just substring
+                    import re
+                    pattern = r'\b' + re.escape(modifier_spec_lower) + r'\b'
+                    if re.search(pattern, ingredient_mods_lower):
+                        logger.info(f"DEBUG: Found word boundary match! Item {item.get('id')} matches modifier '{modifier_spec_lower}'")
+                        items_to_remove.append(item)
+                        break
+            else:
+                # If no exact modifier match, take the first item (fallback)
+                logger.info(f"DEBUG: No exact modifier match, taking first item as fallback: {matching_items[0].get('id')}")
+                items_to_remove.append(matching_items[0])
+        
+        return items_to_remove
+
     def _build_success_message(self, removed_items: List[Dict[str, Any]]) -> str:
         """Build success message for removed items"""
         if len(removed_items) == 1:

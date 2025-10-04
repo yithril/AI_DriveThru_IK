@@ -3,6 +3,10 @@ from app.config.settings import settings
 from app.services.database.redis_service import RedisService
 from app.services.database.postgres_service import PostgresService
 from app.services.storage.s3_service import S3Service
+from app.services.menu_service import MenuService
+from app.services.ingredient_service import IngredientService
+from app.services.modify_item_service import ModifyItemService
+from app.services.category_service import CategoryService
 
 
 class Container(containers.DeclarativeContainer):
@@ -27,6 +31,16 @@ class Container(containers.DeclarativeContainer):
         secret_access_key=settings.aws_secret_access_key,
         region=settings.aws_region,
         bucket=settings.s3_bucket
+    )
+    
+    # Business services
+    menu_service = providers.Singleton(MenuService)
+    ingredient_service = providers.Singleton(IngredientService)
+    category_service = providers.Singleton(CategoryService)
+    modify_item_service = providers.Singleton(
+        ModifyItemService,
+        menu_service=menu_service,
+        ingredient_service=ingredient_service
     )
 
 

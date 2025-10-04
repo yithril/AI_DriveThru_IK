@@ -50,6 +50,7 @@ Return JSON with this format:
     {{
       "order_item_id": null,
       "target_ref": "item_name_or_last_item",
+      "modifier_spec": "optional_modifier_description",
       "removal_reason": "optional_reason"
     }}
   ],
@@ -60,6 +61,10 @@ Examples:
 - "Remove the burger" → target_ref: "burger"
 - "Remove the last thing" → target_ref: "last_item" 
 - "Remove the fries" → target_ref: "fries"
+- "Remove the fish sandwich with extra lettuce" → target_ref: "fish sandwich", modifier_spec: "extra lettuce"
+- "Remove the burger with extra cheese" → target_ref: "burger", modifier_spec: "extra cheese"
+
+IMPORTANT: If the customer specifies modifiers (like "with extra lettuce", "with no onions"), include the modifier_spec field to help identify the exact item to remove.
 
 Return ONLY the JSON response."""
 

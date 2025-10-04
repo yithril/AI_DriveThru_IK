@@ -7,12 +7,25 @@ ambiguous input like "I'll take two" into explicit text like "I'll take two vegg
 
 import logging
 import re
-from typing import List, Dict, Any, Optional
+import json
+from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
 from app.config.settings import settings
+from app.dto.conversation_dto import ConversationHistory
 
 logger = logging.getLogger(__name__)
 
+NUMBER_WORDS = {
+    "zero","one","two","three","four","five","six","seven","eight","nine","ten",
+    "eleven","twelve","dozen"
+}
+
+DEFAULT_ORDER_TERMS = {
+    # Expand with your taxonomy; keep it lowercase
+    "wrap","wraps","burger","burgers","sandwich","sandwiches","fries","shake","shakes",
+    "tea","water","cookie","cookies","taco","tacos","combo","meal","meals","sundae","sundaes",
+    "nugget","nuggets","drink","drinks","sauce","sauces","packet","packets"
+}
 
 @dataclass
 class ContextResolutionResult:
@@ -27,125 +40,154 @@ class ContextResolutionResult:
 class ContextService:
     """
     Service for resolving context in ambiguous user input.
-    
-    This service:
-    1. Checks if input needs context resolution (eligibility check)
-    2. Resolves context using conversation and order history
-    3. Returns resolved text with confidence score
+
+    Guardrails:
+    1) Only runs for deictic/elliptical/repair utterances.
+    2) Pass-through for explicit requests (e.g., "give me 3 wraps").
     """
-    
-    def __init__(self):
-        """Initialize the context service"""
+
+    def __init__(self, order_terms: Optional[set[str]] = None):
         self.logger = logger
-        
-        # Generic patterns for eligibility check (restaurant-agnostic)
-        self.pronoun_patterns = [
-            r'\b(it|that|this|them|one)\b',  # Standalone pronouns
-        ]
-        
-        self.quantity_patterns = [
-            r'\b(two|three|four|five|a couple|some)\b',
-        ]
-        
-        self.demonstrative_patterns = [
-            r'\b(that|those)\s+\w+',  # "that burger", "those fries" - ambiguous
-            r'\bthe\s+(same|one|other)\b',  # "the same", "the one" - ambiguous
-        ]
-        
-        # Additional generic patterns for common drive-thru scenarios
-        self.temporal_patterns = [
-            r'\b(same|again|more|another)\b',
-            r'\b(like that|like this)\b',
-        ]
-        
-        self.action_patterns = [
-            r'\b(make it|change it|switch it)\b',
-            r'\b(instead|rather)\b',
-        ]
-        
-        # Compile regex patterns for efficiency
-        self.pronoun_regex = re.compile('|'.join(self.pronoun_patterns), re.IGNORECASE)
-        self.quantity_regex = re.compile('|'.join(self.quantity_patterns), re.IGNORECASE)
-        self.demonstrative_regex = re.compile('|'.join(self.demonstrative_patterns), re.IGNORECASE)
-        self.temporal_regex = re.compile('|'.join(self.temporal_patterns), re.IGNORECASE)
-        self.action_regex = re.compile('|'.join(self.action_patterns), re.IGNORECASE)
-    
+        self.order_terms = set(t.lower() for t in (order_terms or DEFAULT_ORDER_TERMS))
+
+        # Deixis / repair / ellipsis cues
+        self.deixis_tokens = {
+            "it","that","this","those","these","same","the same","that one","this one","ones","one"
+        }
+        self.repair_tokens = {
+            "actually","scratch that","undo that","cancel that","remove that","not that","take that off"
+        }
+        self.ellipsis_tokens = {
+            "another","one more","same again","the usual","make it","make them","keep it","leave it",
+        }
+
+        # Regex bundles
+        self.deixis_regex = re.compile(r"\b(it|that|this|those|these|them|same|ones?)\b", re.IGNORECASE)
+        self.repair_regex = re.compile(r"\b(actually|scratch that|undo that|cancel that|remove that|not that|take that off)\b", re.IGNORECASE)
+        self.ellipsis_regex = re.compile(r"\b(another|one more|same again|the usual|make (it|them)|keep it|leave it)\b", re.IGNORECASE)
+
+        # “Nouny hints” for explicit orders, expand with your taxonomy
+        noun_pattern = r"|".join(sorted(map(re.escape, self.order_terms), key=len, reverse=True))
+        self.noun_hint_regex = re.compile(rf"\b({noun_pattern})\b", re.IGNORECASE)
+
+        # Numeric presence (digits or number words)
+        self.number_word_regex = re.compile(r"\b(" + "|".join(sorted(NUMBER_WORDS)) + r")\b", re.IGNORECASE)
+        self.any_digit_regex = re.compile(r"\d")
+
+        # Action cues that often appear with deixis but aren’t sufficient alone
+        self.action_regex = re.compile(r"\b(make it|change it|switch it|instead|rather)\b", re.IGNORECASE)
+
+        # Intents we care about
+        self.eligible_intents = {'ADD_ITEM','MODIFY_ITEM','REPEAT_ITEM','REMOVE_ITEM','QUESTION'}
+
+    # ---------- Public API ----------
+
     def check_eligibility(self, user_input: str, intent: str) -> bool:
         """
-        Check if input needs context resolution.
-        
-        Args:
-            user_input: The user's input text
-            intent: The classified intent (ADD_ITEM, MODIFY_ITEM, etc.)
-            
-        Returns:
-            bool: True if input needs context resolution
+        Decide whether to invoke the LLM agent at all.
+
+        Simple: Only run for obvious ambiguous patterns.
+        Let the LLM handle nuanced cases like "one burger" vs "one".
         """
-        # Run on order-related intents and questions that might have ambiguous references
-        eligible_intents = ['ADD_ITEM', 'MODIFY_ITEM', 'REPEAT_ITEM', 'REMOVE_ITEM', 'QUESTION']
-        if intent not in eligible_intents:
-            self.logger.debug(f"Intent '{intent}' not in eligible intents, skipping context resolution")
+        if intent not in self.eligible_intents:
+            self.logger.debug(f"Intent '{intent}' not eligible → skip context agent")
             return False
+
+        t = user_input.lower().strip()
         
-        # Check for deictic cues
-        has_pronouns = bool(self.pronoun_regex.search(user_input))
-        has_quantities = bool(self.quantity_regex.search(user_input))
-        has_demonstratives = bool(self.demonstrative_regex.search(user_input))
-        has_temporal = bool(self.temporal_regex.search(user_input))
-        has_actions = bool(self.action_regex.search(user_input))
+        # Obvious ambiguous patterns that should trigger context resolution:
+        # 1. Standalone pronouns/demonstratives
+        standalone_pronouns = re.compile(r'\b(it|that|this|those|these|them|same)\b(?!\s+\w+)', re.IGNORECASE)
+        if standalone_pronouns.search(t):
+            self.logger.debug("Found standalone pronoun → eligible")
+            return True
         
-        needs_resolution = (has_pronouns or has_quantities or has_demonstratives or 
-                           has_temporal or has_actions)
-        
-        self.logger.debug(f"Eligibility check: pronouns={has_pronouns}, quantities={has_quantities}, "
-                         f"demonstratives={has_demonstratives}, temporal={has_temporal}, actions={has_actions}, "
-                         f"needs_resolution={needs_resolution}")
-        
-        return needs_resolution
-    
-    def resolve_context(
-        self, 
-        user_input: str, 
-        conversation_history: List[Dict[str, Any]], 
-        current_order: Dict[str, Any],
-        command_history: List[Dict[str, Any]]
-    ) -> ContextResolutionResult:
-        """
-        Resolve context for ambiguous user input.
-        
-        Args:
-            user_input: The user's input text
-            conversation_history: Recent conversation turns
-            current_order: Current order state
-            command_history: Recent command history
+        # 2. Repair markers
+        if self.repair_regex.search(t):
+            self.logger.debug("Found repair marker → eligible")
+            return True
             
-        Returns:
-            ContextResolutionResult: Resolution result with confidence
+        # 3. Ellipsis markers
+        if self.ellipsis_regex.search(t):
+            self.logger.debug("Found ellipsis marker → eligible")
+            return True
+        
+        # 4. Obvious ambiguous quantities (no nouny hint at all)
+        has_quantity = bool(self.any_digit_regex.search(t) or self.number_word_regex.search(t))
+        has_nouny_hint = bool(self.noun_hint_regex.search(t))
+        
+        # Only trigger if there's a quantity AND no nouny hint at all
+        # This catches "I'll take two" but lets "one burger" through
+        if has_quantity and not has_nouny_hint:
+            self.logger.debug("Found ambiguous quantity (no nouny hint) → eligible")
+            return True
+
+        # Everything else goes through to the LLM for nuanced decision
+        self.logger.debug("No obvious ambiguous patterns → let LLM decide")
+        return True
+
+    async def resolve_context(
+        self,
+        user_input: str,
+        conversation_history: ConversationHistory,
+        command_history: ConversationHistory,
+        current_order: Optional[Dict[str, Any]] = None
+    ) -> "ContextResolutionResult":
+        """
+        If input is explicit → pass-through with high confidence.
+        Else → call LLM with strict prompt; return its JSON.
         """
         try:
-            self.logger.info(f"Resolving context for input: '{user_input}'")
-            
-            # Build context for LLM
-            context_text = self._build_context_text(conversation_history, current_order, command_history)
-            
-            # Use LLM to resolve context
-            resolved_text, confidence, rationale = self._llm_resolve_context(
-                user_input, context_text
+            self.logger.info(f"ContextService resolving: '{user_input}'")
+
+            # Fast path: explicit detection (even if the router called us)
+            if self._is_explicit_and_clear(user_input):
+                self.logger.debug("Explicit & clear → pass-through")
+                return ContextResolutionResult(
+                    needs_resolution=False,
+                    resolved_text=user_input,
+                    confidence=0.98,
+                    rationale="Explicit request (item/category + optional quantity), no pronouns/demonstratives.",
+                    original_text=user_input
+                )
+
+            # Build prompt with your stricter "not too helpful" spec
+            from app.workflow.prompts.context_prompts import get_context_resolution_prompt
+            prompt = get_context_resolution_prompt(
+                user_input=user_input,
+                conversation_history=conversation_history,
+                command_history=command_history,
+                current_order=current_order
             )
-            
-            result = ContextResolutionResult(
-                needs_resolution=True,
-                resolved_text=resolved_text,
-                confidence=confidence,
-                rationale=rationale,
-                original_text=user_input
-            )
-            
-            self.logger.info(f"Context resolution result: confidence={confidence:.2f}, "
-                           f"resolved='{resolved_text}', rationale='{rationale}'")
-            
-            return result
-            
+
+            status, resolved_text, clarification, confidence, rationale = await self._llm_call_and_parse(prompt)
+
+            if status == "SUCCESS":
+                return ContextResolutionResult(
+                    needs_resolution=True,
+                    resolved_text=resolved_text or user_input,
+                    confidence=confidence,
+                    rationale=rationale,
+                    original_text=user_input
+                )
+            elif status == "CLARIFICATION_NEEDED":
+                # Hand back the clarification to upstream (your pipeline can surface this to the user)
+                return ContextResolutionResult(
+                    needs_resolution=True,
+                    resolved_text=clarification or "",
+                    confidence=confidence,
+                    rationale=rationale or "Clarification requested.",
+                    original_text=user_input
+                )
+            else:  # UNRESOLVABLE or unknown
+                return ContextResolutionResult(
+                    needs_resolution=True,
+                    resolved_text=user_input,   # fall back to original text
+                    confidence=confidence if confidence is not None else 0.3,
+                    rationale=rationale or "Unresolvable; returned original text.",
+                    original_text=user_input
+                )
+
         except Exception as e:
             self.logger.error(f"Context resolution failed: {e}")
             return ContextResolutionResult(
@@ -155,86 +197,81 @@ class ContextService:
                 rationale=f"Resolution failed: {str(e)}",
                 original_text=user_input
             )
-    
-    def _build_context_text(
-        self, 
-        conversation_history: List[Dict[str, Any]], 
-        current_order: Dict[str, Any],
-        command_history: List[Dict[str, Any]]
-    ) -> str:
-        """Build context text for LLM"""
-        context_parts = []
-        
-        # Add conversation history (last 3 turns)
-        if conversation_history:
-            recent_conversation = conversation_history[-3:]
-            conv_text = "\n".join([
-                f"{turn.get('role', 'unknown')}: {turn.get('content', '')}" 
-                for turn in recent_conversation
-            ])
-            context_parts.append(f"Recent conversation:\n{conv_text}")
-        
-        # Add current order summary
-        if current_order and current_order.get('items'):
-            order_items = current_order['items']
-            order_text = ", ".join([
-                f"{item.get('quantity', 1)}x {item.get('name', 'Unknown')}" 
-                for item in order_items
-            ])
-            context_parts.append(f"Current order: {order_text}")
-        
-        # Add command history (last 3 commands)
-        if command_history:
-            recent_commands = command_history[-3:]
-            cmd_text = "\n".join([
-                f"Command: {cmd.get('action', 'unknown')} - {cmd.get('description', '')}" 
-                for cmd in recent_commands
-            ])
-            context_parts.append(f"Recent commands:\n{cmd_text}")
-        
-        return "\n\n".join(context_parts)
-    
-    def _llm_resolve_context(self, user_input: str, context_text: str) -> tuple[str, float, str]:
+
+    def should_use_resolution(self, result: "ContextResolutionResult", threshold: float = 0.8) -> bool:
+        """Keep as-is."""
+        use = result.confidence >= threshold
+        self.logger.debug(f"Use resolution? conf={result.confidence:.2f} ≥ {threshold} → {use}")
+        return use
+
+    # ---------- Internals ----------
+
+    def _is_explicit_and_clear(self, user_input: str) -> bool:
         """
-        Use LLM to resolve context.
+        Simple check: does the input have a nouny hint (item/category name)?
+        If yes, it's likely explicit. Let the LLM handle the nuances.
+        """
+        t = user_input.lower().strip()
         
-        Args:
-            user_input: The user's input text
-            context_text: Built context from conversation/order history
+        # If it has a nouny hint, it's likely explicit
+        has_nouny_hint = bool(self.noun_hint_regex.search(t))
+        
+        if has_nouny_hint:
+            # Check for obvious ambiguous markers
+            standalone_pronouns = re.compile(r'\b(it|that|this|those|these|them|same)\b(?!\s+\w+)', re.IGNORECASE)
+            if standalone_pronouns.search(t):
+                return False
             
-        Returns:
-            tuple: (resolved_text, confidence, rationale)
+            if self.repair_regex.search(t) or self.ellipsis_regex.search(t):
+                return False
+                
+            return True
+        
+        # No nouny hint = likely ambiguous, but let LLM decide
+        return False
+
+    async def _llm_call_and_parse(self, prompt: str) -> Tuple[str, Optional[str], Optional[str], float, str]:
         """
-        # TODO: Implement LLM-based context resolution
-        # For now, return mock implementation
-        self.logger.debug("Using mock LLM resolution (TODO: implement real LLM)")
-        
-        # Mock resolution logic
-        if "two" in user_input.lower():
-            resolved_text = user_input.replace("two", "two veggie wraps")
-            confidence = 0.9
-            rationale = "Resolved 'two' to 'two veggie wraps' based on recent conversation"
-        else:
-            resolved_text = user_input
-            confidence = 0.5
-            rationale = "No clear resolution found"
-        
-        return resolved_text, confidence, rationale
-    
-    def should_use_resolution(self, result: ContextResolutionResult, threshold: float = 0.8) -> bool:
+        Call LLM and parse the strict JSON contract.
         """
-        Determine if resolved text should be used based on confidence threshold.
-        
-        Args:
-            result: Context resolution result
-            threshold: Confidence threshold (default 0.8)
+        try:
+            from langchain_openai import ChatOpenAI
+            from langchain_core.messages import HumanMessage
             
-        Returns:
-            bool: True if resolved text should be used
-        """
-        should_use = result.confidence >= threshold
-        
-        self.logger.debug(f"Resolution decision: confidence={result.confidence:.2f}, "
-                         f"threshold={threshold}, use_resolution={should_use}")
-        
-        return should_use
+            # Create LLM instance
+            llm = ChatOpenAI(
+                model="gpt-4o",
+                api_key=settings.openai_api_key,
+                temperature=0.1
+            )
+            
+            # Create message with the prompt
+            message = HumanMessage(content=prompt)
+            
+            # Get LLM response
+            response = await llm.ainvoke([message])
+            response_text = response.content.strip()
+            
+            # Parse the JSON response (handle markdown code blocks)
+            # Extract JSON from markdown code blocks if present
+            json_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', response_text, re.DOTALL)
+            if json_match:
+                raw = json_match.group(1)
+            else:
+                raw = response_text
+            
+            obj = json.loads(raw)
+            
+        except Exception as e:
+            self.logger.error(f"LLM call failed: {e}")
+            # Fail-safe: treat as pass-through
+            return ("SUCCESS", None, None, 0.95, f"LLM call failed: {str(e)}")
+
+        status = obj.get("status", "SUCCESS")
+        resolved_text = obj.get("resolved_text")
+        clarification = obj.get("clarification_message")
+        confidence = float(obj.get("confidence", 0.9))
+        rationale = obj.get("rationale", "")
+
+        # Enforce conservative behavior: if SUCCESS but no resolved_text, keep original
+        return (status, resolved_text, clarification, confidence, rationale)

@@ -3,7 +3,7 @@ Order Data Transfer Objects (DTOs)
 """
 
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from decimal import Decimal
 from app.models.order import OrderStatus
@@ -77,3 +77,40 @@ class OrderDeleteResponseDto(BaseModel):
 class OrderStatusUpdateDto(BaseModel):
     """DTO for updating order status"""
     status: OrderStatus = Field(..., description="New order status")
+
+
+# Order Summary DTOs for combined order + order items display
+class OrderItemSummaryDto(BaseModel):
+    """DTO for order item in summary view with resolved menu item name"""
+    id: int = Field(..., description="Order item ID")
+    menu_item_name: str = Field(..., description="Resolved menu item name")
+    quantity: int = Field(..., description="Quantity of the item")
+    unit_price: Decimal = Field(..., description="Unit price at time of order")
+    total_price: Decimal = Field(..., description="Total price for this line item")
+    size: str = Field(..., description="Size of the item")
+    special_instructions: Optional[str] = Field(None, description="Special instructions for this item")
+    created_at: datetime = Field(..., description="When the order item was created")
+
+    model_config = {"from_attributes": True}
+
+
+class OrderSummaryDto(BaseModel):
+    """DTO for order summary with embedded order items"""
+    id: int = Field(..., description="Order ID")
+    restaurant_id: int = Field(..., description="ID of the restaurant")
+    status: OrderStatus = Field(..., description="Order status")
+    subtotal: Decimal = Field(..., description="Subtotal before tax")
+    tax_amount: Decimal = Field(..., description="Tax amount")
+    total_amount: Decimal = Field(..., description="Total amount including tax")
+    special_instructions: Optional[str] = Field(None, description="Special instructions for the order")
+    created_at: datetime = Field(..., description="When the order was created")
+    updated_at: datetime = Field(..., description="When the order was last updated")
+    order_items: List[OrderItemSummaryDto] = Field(default=[], description="List of order items with resolved names")
+
+    model_config = {"from_attributes": True}
+
+
+class OrderSummaryListResponseDto(BaseModel):
+    """DTO for order summary list response"""
+    orders: List[OrderSummaryDto] = Field(..., description="List of order summaries")
+    total: int = Field(..., description="Total number of orders")

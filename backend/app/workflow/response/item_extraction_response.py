@@ -12,7 +12,7 @@ class ExtractedItem(BaseModel):
     """
     # Raw extraction fields
     item_name: str = Field(description="The name/description of the item as mentioned by the user")
-    quantity: int = Field(description="Quantity requested", ge=1, le=100)
+    quantity: int = Field(description="Quantity requested", ge=1)
     size: Optional[str] = Field(default=None, description="Size mentioned (e.g., 'large', 'medium', 'small')")
     modifiers: List[str] = Field(default_factory=list, description="List of modifiers mentioned (e.g., 'extra cheese', 'no pickles')")
     special_instructions: Optional[str] = Field(default=None, description="Special cooking instructions mentioned")

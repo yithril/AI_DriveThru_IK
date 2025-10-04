@@ -49,7 +49,7 @@ class ResolvedItem(BaseModel):
     """
     # Original extraction data
     item_name: str = Field(description="Original item name from extraction")
-    quantity: int = Field(description="Quantity requested", ge=1, le=100)
+    quantity: int = Field(description="Quantity requested", ge=1)
     size: Optional[str] = Field(default=None, description="Size requested")
     special_instructions: Optional[str] = Field(default=None, description="Special instructions")
     

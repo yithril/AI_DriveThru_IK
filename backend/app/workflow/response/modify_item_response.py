@@ -8,12 +8,22 @@ from decimal import Decimal
 from app.constants.item_sizes import ItemSize
 
 
+class ModificationInstruction(BaseModel):
+    """Individual modification instruction for a specific quantity of items"""
+    
+    item_id: str = Field(..., description="ID of the order item to modify")
+    item_name: str = Field(..., description="Name of the item being modified")
+    quantity: int = Field(..., description="Number of items to apply this modification to")
+    modification: str = Field(..., description="Human-readable modification instruction (e.g., 'extra cheese', 'no lettuce')")
+    reasoning: Optional[str] = Field(None, description="Explanation of why this modification was identified")
+
+
 class ModifyItemResult(BaseModel):
     """
-    Response from the Modify Item Agent
+    Enhanced response from the Modify Item Agent
     
-    Contains the parsed modification request with target identification
-    and modification details. No database changes are made by the agent.
+    Contains the parsed modification request with support for complex scenarios
+    including quantity-based modifications and item splitting.
     """
     
     # Success indicators
@@ -24,35 +34,17 @@ class ModifyItemResult(BaseModel):
         ..., ge=0.0, le=1.0, description="Overall confidence in the modification request"
     )
     
-    # Target identification
-    target_item_id: Optional[int] = Field(
-        None, description="ID of the order item to modify"
-    )
-    target_confidence: float = Field(
-        0.0, ge=0.0, le=1.0, description="Confidence in target item identification"
-    )
-    target_reasoning: Optional[str] = Field(
-        None, description="Explanation of how the target item was identified"
+    # Enhanced modification structure
+    modifications: List[ModificationInstruction] = Field(
+        default_factory=list, description="List of modification instructions for different quantities"
     )
     
-    # Modification details
-    modification_type: Optional[str] = Field(
-        None, description="Type of modification: 'quantity', 'size', 'ingredient', or 'multiple'"
+    # Item splitting support
+    requires_split: bool = Field(
+        default=False, description="Whether the original item needs to be split into multiple items"
     )
-    
-    # Quantity modifications
-    new_quantity: Optional[int] = Field(
-        None, ge=1, le=20, description="New quantity for the item"
-    )
-    
-    # Size modifications
-    new_size: Optional[str] = Field(
-        None, description="New size for the item"
-    )
-    
-    # Ingredient modifications (human-readable instructions)
-    ingredient_modifications: List[str] = Field(
-        default_factory=list, description="List of ingredient modifications as human-readable strings"
+    remaining_unchanged: int = Field(
+        default=0, description="Number of items that remain unchanged (for splitting scenarios)"
     )
     
     # Clarification needed
@@ -63,15 +55,19 @@ class ModifyItemResult(BaseModel):
         None, description="Message to ask user for clarification"
     )
     
-    # Additional cost from modifications
-    additional_cost: Decimal = Field(
-        default=Decimal('0.00'), ge=0, description="Additional cost from modifications"
-    )
-    
     # Validation and errors
     validation_errors: List[str] = Field(
         default_factory=list, description="List of validation errors found during parsing"
     )
+    
+    # Partial success support (added by service during validation)
+    successful_modifications: Optional[List[ModificationInstruction]] = Field(
+        default=None, description="Modifications that passed validation (set by service)"
+    )
+    failed_modifications: Optional[List[ModificationInstruction]] = Field(
+        default=None, description="Modifications that failed validation (set by service)"
+    )
+    
     reasoning: Optional[str] = Field(
         None, description="Explanation of the modification request parsing"
     )
@@ -80,46 +76,36 @@ class ModifyItemResult(BaseModel):
     @classmethod
     def validate_confidence(cls, v):
         """Validate confidence score"""
-        # Just validate the range, don't access other fields during validation
-        return v
-
-    @field_validator('target_confidence')
-    @classmethod
-    def validate_target_confidence(cls, v):
-        """Validate target confidence"""
-        # Just validate the range, don't access other fields during validation
         return v
 
     def is_high_confidence(self) -> bool:
         """Check if this is a high confidence modification request"""
         return self.confidence >= 0.8
 
-    def has_target(self) -> bool:
-        """Check if a target item was identified"""
-        return self.target_item_id is not None
+    def has_modifications(self) -> bool:
+        """Check if there are any modification instructions"""
+        return len(self.modifications) > 0
 
     def needs_clarification(self) -> bool:
         """Check if clarification is needed"""
-        return self.clarification_needed or self.target_confidence < 0.5
-
-    def has_quantity_modification(self) -> bool:
-        """Check if this includes a quantity modification"""
-        return self.new_quantity is not None
-
-    def has_size_modification(self) -> bool:
-        """Check if this includes a size modification"""
-        return self.new_size is not None
-
-    def has_ingredient_modifications(self) -> bool:
-        """Check if this includes ingredient modifications"""
-        return len(self.ingredient_modifications) > 0
+        return self.clarification_needed or self.confidence < 0.5
 
     def is_actionable(self) -> bool:
         """Check if this modification request can be acted upon"""
         return (
             self.success and 
             not self.needs_clarification() and
-            (self.has_quantity_modification() or 
-             self.has_size_modification() or 
-             self.has_ingredient_modifications())
+            self.has_modifications()
         )
+
+    def get_total_modified_quantity(self) -> int:
+        """Get the total quantity of items that will be modified"""
+        return sum(mod.quantity for mod in self.modifications)
+
+    def get_target_item_ids(self) -> List[str]:
+        """Get all unique target item IDs"""
+        return list(set(mod.item_id for mod in self.modifications))
+
+    def has_splitting_required(self) -> bool:
+        """Check if item splitting is required"""
+        return self.requires_split or self.remaining_unchanged > 0

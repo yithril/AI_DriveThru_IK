@@ -27,12 +27,14 @@ class QuestionAnswerWorkflow:
         restaurant_id: int,
         menu_service,
         ingredient_service,
-        restaurant_service
+        restaurant_service,
+        category_service=None
     ):
         self.restaurant_id = restaurant_id
         self.menu_service = menu_service
         self.ingredient_service = ingredient_service
         self.restaurant_service = restaurant_service
+        self.category_service = category_service
     
     async def execute(
         self, 
@@ -61,6 +63,7 @@ class QuestionAnswerWorkflow:
                 menu_service=self.menu_service,
                 ingredient_service=self.ingredient_service,
                 restaurant_service=self.restaurant_service,
+                category_service=self.category_service,
                 conversation_history=conversation_history or ConversationHistory(session_id=""),
                 current_order=current_order or {}
             )

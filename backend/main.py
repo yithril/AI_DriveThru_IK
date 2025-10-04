@@ -24,6 +24,7 @@ from app.api.restaurants_controller import router as restaurants_router
 from app.api.customer_controller import router as customer_router
 from app.api.voice_controller import router as voice_router
 from app.api.sessions_controller import router as sessions_router
+from app.api.orders_controller import router as orders_router
 
 
 @asynccontextmanager
@@ -78,6 +79,7 @@ app.include_router(menu_items_router)
 app.include_router(file_upload_router)
 app.include_router(voice_router)
 app.include_router(sessions_router)
+app.include_router(orders_router)
 
 
 @app.get("/")
@@ -110,7 +112,8 @@ container.wire(modules=[
     "app.api.menu_items_controller", 
     "app.api.file_upload_controller",
     "app.api.voice_controller",
-    "app.api.sessions_controller"
+    "app.api.sessions_controller",
+    "app.api.orders_controller"
 ])
 
 # Make container available to the app

@@ -39,73 +39,56 @@ CONTEXT:
 
 USER INPUT: "{user_input}"
 
+PURPOSE:
+You are ONLY called when the user’s message *might* contain deixis (it/that/these), ellipsis (“one more,” “same again”), or repair markers (“actually,” “scratch that”).  
+If the input is already explicit (names an item/category and optionally a quantity, with no pronouns/demonstratives), you MUST return it unchanged.
+
+ACTIVATION CRITERIA:
+- Pronouns/demonstratives: it, that, this, these, those, same, the same, that one, this one.
+- Repair markers: actually, scratch that, undo that, cancel that, remove that.
+- Ellipsis markers: another, one more, the usual, the same again.
+- If NONE of these are present, pass the user’s text through unchanged.
+
 TASK:
-Transform the ambiguous user input into explicit text that the downstream system can understand (e.g., “Remove the two Asteroid Cookies from my order”). If input is already explicit, pass it through unchanged.
+Transform ambiguous user input into explicit text *only* when deixis, ellipsis, or repairs require clarification using conversation/command history and the current order.  
+If input is already clear and explicit, return it unchanged.
 
 PRINCIPLES:
-- Deterministic, minimal, and safe changes.
-- Prefer a single, precise interpretation over broad changes.
-- When ambiguity remains, ask for one short, concrete clarification question.
+- Minimal edits, deterministic changes.
+- Do not expand clear category orders like “Give me 3 wraps” or “Add 2 fries.” Leave them untouched.
+- Only resolve pronouns/demonstratives/repairs when context provides a confident antecedent.
+- When multiple candidates remain, ask one short clarification question.
+- Never invent or over-specify items beyond what the user said.
 
 RULES:
-1. Return ONLY the JSON object, no extra text.
-2. If the input is already explicit and clear, return SUCCESS with the original text unchanged.
-3. Use conversation history, command history, and current order to resolve references.
-4. Expand pronouns and demonstratives (“it/that/these/those/same thing”) into explicit item names found in the current order or last assistant confirmation.
-5. Expand vague quantities into explicit numbers when recoverable from context; otherwise ask for clarification.
-6. If confidence < 0.8 and multiple candidates remain, return CLARIFICATION_NEEDED with a short, context-aware question that names the top 1–2 candidates.
-7. Confidence bands:
-   - 0.8–1.0 → SUCCESS
-   - 0.3–0.7 → CLARIFICATION_NEEDED
-   - <0.3 → UNRESOLVABLE (ask the user to restate clearly)
-
-REPAIR & DEMONSTRATIVE RESOLUTION:
-A. Repair markers: {"actually", "scratch that", "take ... off", "remove that", "undo that", "cancel that", "not that"}.
-   If present, default antecedent = the last committed change (prefer the most recent assistant confirmation or committed order diff).
-B. Number agreement: “those/these” = plural; “that/this/it” = singular. Exclude candidates with mismatched number.
-C. Recency/focus: Prefer entities referenced in the last assistant confirmation or the user’s immediately preceding request; strongly weight the item(s) just added or modified.
-D. Homogeneity constraint: A bare demonstrative cannot span heterogeneous item types. Do not remove multiple different items unless the user says “both/all” or enumerates them.
-E. Verb-frame mapping: “take/remove X off/out” refers to removing item(s) or modifiers that were just added/changed; do not remove across scopes unless explicit.
-F. Quantity reinforcement: If the immediately previous turn mentions a quantity (e.g., “two cookies”), prefer candidates with matching quantity.
-G. Anti-overreach: Never expand a demonstrative to more than one noun phrase unless explicitly requested (“both”, “all”, enumeration).
-
-SCOPE & PERSISTENCE POLICY:
-- Scopes: Core item (e.g., “Veggie Nebula Wrap”), On-item modifiers (e.g., “no tomato”, “extra blue cheese”), Side add-ons (e.g., “2 ranch packets”), Global order (e.g., “to-go”).
-- Do not cross scopes implicitly. Changes to one scope do not remove items in another scope unless the user says so.
-- Additive cues: “also/and/plus/extra/keep/still” → add/augment within the same scope.
-- Replacement cues: “instead/make it/swap/change to/remove/no longer” → replace/remove within the same scope.
-
-CLARIFICATION STYLE (when needed):
-- Ask one short, concrete question naming the top candidate(s). Example: “Do you want me to remove the two Asteroid Cookies?” or “Remove the two cookies or the two tacos?”
-
-EXAMPLES:
-- "Tell me about the veggie wrap" → SUCCESS; resolved_text: "Tell me about the veggie wrap" (already clear)
-- Context: Last assistant → “I’ve added two Asteroid Cookies to your order.” Current order also has a Veggie Nebula Wrap.
-  User: “Actually, could you take those off?”
-  → SUCCESS; resolved_text: "Remove the two Asteroid Cookies from my order" (plural, last change, homogeneous)
-- Context: Last assistant → “I’ve added a Veggie Nebula Wrap to your order.”
-  User: “Actually, take that off.”
-  → SUCCESS; resolved_text: "Remove the Veggie Nebula Wrap from my order" (singular, last change)
-- Context: Last assistant → “I’ve added two Asteroid Cookies and two Lunar Tacos.”
-  User: “Take those off.”
-  → CLARIFICATION_NEEDED; clarification_message: "Do you want me to remove the two Asteroid Cookies or the two Lunar Tacos?"
+1. Return ONLY the JSON object below.
+2. If explicit and clear, return SUCCESS with the original text unchanged (confidence ≥ 0.95).
+3. Expand deixis/repairs/ellipsis using last assistant confirmation, command history, or current order.
+4. If confidence < 0.8 because multiple candidates remain → CLARIFICATION_NEEDED.
+5. If input is too vague (<0.3 confidence) → UNRESOLVABLE, ask user to restate.
 
 OUTPUT FORMAT:
-Respond ONLY with a JSON object matching this exact structure:
 {{
-  "status": "SUCCESS" or "CLARIFICATION_NEEDED" or "UNRESOLVABLE",
+  "status": "SUCCESS" | "CLARIFICATION_NEEDED" | "UNRESOLVABLE",
   "resolved_text": "Explicit text if SUCCESS, null otherwise",
-  "clarification_message": "Clarification request if CLARIFICATION_NEEDED or UNRESOLVABLE, null if SUCCESS",
+  "clarification_message": "Clarification request if needed, null if SUCCESS",
   "confidence": 0.95,
-  "rationale": "Brief explanation of your decision"
+  "rationale": "Brief explanation of decision"
 }}
 
-STATUS RULES:
-- "SUCCESS" when you can confidently resolve the context (confidence 0.8+).
-- "CLARIFICATION_NEEDED" when context is ambiguous but resolvable with one question (confidence 0.3–0.7).
-- "UNRESOLVABLE" when input is too vague or context is insufficient (confidence <0.3); ask the user to restate clearly.
-
-Return ONLY the JSON response. Do not include any other text."""
+EXAMPLES:
+- User: "Give me 3 wraps."
+  → SUCCESS; resolved_text: "Give me 3 wraps." (unchanged; explicit)
+- Context: Last assistant added “Veggie Nebula Wrap.”
+  User: "Make it two."
+  → SUCCESS; resolved_text: "Change quantity of Veggie Nebula Wrap to 2."
+- Context: Last assistant added “2 Asteroid Cookies.”
+  User: "Actually, take those off."
+  → SUCCESS; resolved_text: "Remove the 2 Asteroid Cookies from my order."
+- Context: Last assistant added “2 Cookies” and “2 Tacos.”
+  User: "Take those off."
+  → CLARIFICATION_NEEDED; clarification_message: "Remove the 2 Cookies or the 2 Tacos?
+  """
 
     return prompt
 

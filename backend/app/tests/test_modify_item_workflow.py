@@ -7,7 +7,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from decimal import Decimal
 from app.workflow.nodes.modify_item_workflow import ModifyItemWorkflow
 from app.services.order_session_service import OrderSessionService
-from app.workflow.response.modify_item_response import ModifyItemResult
+from app.services.menu_service import MenuService
+from app.services.ingredient_service import IngredientService
+from app.workflow.response.modify_item_response import ModifyItemResult, ModificationInstruction
 from app.dto.modify_item_dto import ModifyItemResultDto
 
 
@@ -18,9 +20,25 @@ def mock_order_session_service():
 
 
 @pytest.fixture
-def modify_item_workflow(mock_order_session_service):
+def mock_menu_service():
+    """Mock menu service"""
+    return MagicMock(spec=MenuService)
+
+
+@pytest.fixture
+def mock_ingredient_service():
+    """Mock ingredient service"""
+    return MagicMock(spec=IngredientService)
+
+
+@pytest.fixture
+def modify_item_workflow(mock_order_session_service, mock_menu_service, mock_ingredient_service):
     """Create modify item workflow with mocked dependencies"""
-    return ModifyItemWorkflow(mock_order_session_service)
+    return ModifyItemWorkflow(
+        order_session_service=mock_order_session_service,
+        menu_service=mock_menu_service,
+        ingredient_service=mock_ingredient_service
+    )
 
 
 @pytest.fixture
@@ -66,11 +84,44 @@ def sample_agent_result():
     return ModifyItemResult(
         success=True,
         confidence=0.95,
-        target_item_id=1234567890,  # Matches the Redis item ID
-        target_confidence=0.9,
-        target_reasoning="User wants to change quantity",
-        modification_type="quantity",
-        new_quantity=2
+        modifications=[
+            ModificationInstruction(
+                item_id="item_1234567890",
+                item_name="Burger",
+                quantity=1,
+                modification="change quantity to 2",
+                reasoning="User wants to change quantity"
+            )
+        ],
+        requires_split=False,
+        remaining_unchanged=0
+    )
+
+
+@pytest.fixture
+def sample_complex_agent_result():
+    """Sample agent result for complex item splitting"""
+    return ModifyItemResult(
+        success=True,
+        confidence=0.9,
+        modifications=[
+            ModificationInstruction(
+                item_id="item_1234567890",
+                item_name="Burger",
+                quantity=2,
+                modification="extra cheese",
+                reasoning="User wants 2 burgers with extra cheese"
+            ),
+            ModificationInstruction(
+                item_id="item_1234567890",
+                item_name="Burger", 
+                quantity=1,
+                modification="no pickles",
+                reasoning="User wants 1 burger with no pickles"
+            )
+        ],
+        requires_split=True,
+        remaining_unchanged=1
     )
 
 
@@ -117,14 +168,93 @@ class TestModifyItemWorkflow:
             )
             
             # Verify result
-            assert result["success"] is True
-            assert "Updated Burger: quantity from 1 to 2" in result["message"]
-            assert result["workflow_type"] == "modify_item"
-            assert "quantity from 1 to 2" in result["modified_fields"]
+            assert result.success is True
+            assert "Updated Burger: quantity from 1 to 2" in result.message
+            assert result.workflow_type == "modify_item"
+            assert "quantity from 1 to 2" in result.data["modified_fields"]
             
             # Verify service calls
             mock_order_session_service.get_session_order.assert_called_once_with("session_123")
             mock_order_session_service.update_order.assert_called_once()
+    
+    @pytest.mark.asyncio
+    async def test_execute_complex_item_splitting(
+        self, 
+        modify_item_workflow, 
+        mock_order_session_service,
+        sample_redis_order,
+        sample_complex_agent_result
+    ):
+        """Test complex item splitting workflow"""
+        
+        # Create a multi-quantity order for splitting
+        multi_quantity_order = {
+            "id": "order_1234567890",
+            "session_id": "session_123",
+            "restaurant_id": 1,
+            "status": "active",
+            "items": [
+                {
+                    "id": "item_1234567890",
+                    "menu_item_id": 1,
+                    "quantity": 4,  # 4 burgers to split
+                    "modifications": {
+                        "size": "regular",
+                        "name": "Burger",
+                        "unit_price": 10.0,
+                        "total_price": 40.0,
+                        "ingredient_modifications": "",
+                        "special_instructions": ""
+                    },
+                    "added_at": "2024-01-01T12:00:00"
+                }
+            ]
+        }
+        
+        # Setup mocks
+        mock_order_session_service.get_session_order.return_value = multi_quantity_order
+        mock_order_session_service.update_order.return_value = True
+        
+        # Create service result for complex splitting
+        complex_service_result = ModifyItemResultDto(
+            success=True,
+            message="Split Burger: 2 with extra cheese, 1 with no pickles, 1 unchanged",
+            modified_fields=["Split into 3 variants"],
+            additional_cost=Decimal('2.00')
+        )
+        
+        # Mock the agent and service
+        with patch('app.workflow.nodes.modify_item_workflow.modify_item_agent') as mock_agent, \
+             patch.object(modify_item_workflow.modify_item_service, 'apply_modification') as mock_service:
+            
+            mock_agent.return_value = sample_complex_agent_result
+            mock_service.return_value = complex_service_result
+            
+            # Execute workflow
+            result = await modify_item_workflow.execute(
+                user_input="Make 2 of those burgers extra cheese and 1 with no pickles",
+                session_id="session_123"
+            )
+            
+            # Verify result
+            assert result.success is True
+            assert "Split Burger" in result.message
+            assert result.workflow_type == "modify_item"
+            assert "Split into 3 variants" in result.data["modified_fields"]
+            assert result.data["additional_cost"] == 2.0
+            
+            # Verify service calls
+            mock_order_session_service.get_session_order.assert_called_once_with("session_123")
+            mock_order_session_service.update_order.assert_called_once()
+            
+            # Verify agent was called with correct parameters
+            mock_agent.assert_called_once()
+            call_args = mock_agent.call_args
+            assert call_args[1]["user_input"] == "Make 2 of those burgers extra cheese and 1 with no pickles"
+            # The workflow converts Redis format to PostgreSQL format before passing to agent
+            # So we just verify the agent was called with some order data
+            assert len(call_args[1]["current_order"]) == 1
+            assert call_args[1]["current_order"][0]["quantity"] == 4
     
     @pytest.mark.asyncio
     async def test_execute_no_active_order(
@@ -144,9 +274,9 @@ class TestModifyItemWorkflow:
         )
         
         # Verify result
-        assert result["success"] is False
-        assert "No active order found" in result["message"]
-        assert result["workflow_type"] == "modify_item"
+        assert result.success is False
+        assert "No active order found" in result.message
+        assert result.workflow_type == "modify_item"
         
         # Verify service calls
         mock_order_session_service.get_session_order.assert_called_once_with("session_123")
@@ -168,10 +298,7 @@ class TestModifyItemWorkflow:
         clarification_result = ModifyItemResult(
             success=False,
             confidence=0.3,
-            target_item_id=None,
-            target_confidence=0.2,
-            target_reasoning="Ambiguous request",
-            modification_type=None,
+            modifications=[],
             clarification_needed=True,
             clarification_message="Which item would you like to modify?"
         )
@@ -187,10 +314,10 @@ class TestModifyItemWorkflow:
             )
             
             # Verify result
-            assert result["success"] is False
-            assert "Which item would you like to modify?" in result["message"]
-            assert result["workflow_type"] == "modify_item"
-            assert result["needs_clarification"] is True
+            assert result.success is False
+            assert "Which item would you like to modify?" in result.message
+            assert result.workflow_type == "modify_item"
+            assert result.needs_clarification is True
             
             # Verify service calls
             mock_order_session_service.get_session_order.assert_called_once_with("session_123")
@@ -230,10 +357,10 @@ class TestModifyItemWorkflow:
             )
             
             # Verify result
-            assert result["success"] is False
-            assert "Cannot set quantity to 10" in result["message"]
-            assert result["workflow_type"] == "modify_item"
-            assert "validation_errors" in result
+            assert result.success is False
+            assert "Cannot set quantity to 10" in result.message
+            assert result.workflow_type == "modify_item"
+            assert len(result.validation_errors) > 0
             
             # Verify service calls
             mock_order_session_service.get_session_order.assert_called_once_with("session_123")
@@ -269,8 +396,8 @@ class TestModifyItemWorkflow:
             
             # Verify result - should still succeed since service validation passed
             # The Redis update failure would be logged but not cause workflow failure
-            assert result["success"] is True
-            assert result["workflow_type"] == "modify_item"
+            assert result.success is True
+            assert result.workflow_type == "modify_item"
             
             # Verify service calls
             mock_order_session_service.get_session_order.assert_called_once_with("session_123")
@@ -294,10 +421,10 @@ class TestModifyItemWorkflow:
         )
         
         # Verify result
-        assert result["success"] is False
-        assert "Sorry, I couldn't process your modification request" in result["message"]
-        assert result["workflow_type"] == "modify_item"
-        assert "error" in result
+        assert result.success is False
+        assert "Sorry, I couldn't process your modification request" in result.message
+        assert result.workflow_type == "modify_item"
+        assert result.error is not None
     
     @pytest.mark.asyncio
     async def test_get_current_order_summary_success(

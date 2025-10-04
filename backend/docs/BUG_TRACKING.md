@@ -283,3 +283,13 @@
   - Handle patterns: "I wanted X instead", "Change that to X", "Actually, I wanted X"
 - **Priority:** Medium - Common customer scenario
 - **Status:** 📋 **PLANNED**
+
+#### **BUG-016: Partial Modification of Multi-Quantity Items**
+- **Description:** System applies modifications to ALL items when user requests modification of "one" item from a multi-quantity order
+- **Example:** User has 4 Cosmic Fish Sandwiches, says "on one of those, add extra lettuce" → System adds extra lettuce to ALL 4 instead of just 1
+- **Root Cause:** Modify Item Agent operates on entire items, not individual instances within multi-quantity items
+- **Current Behavior:** "Updated Cosmic Fish Sandwich: ingredients: Extra lettuce" (applies to all 4)
+- **Expected Behavior:** Should either split into 2 items (3 regular + 1 modified) or ask for clarification
+- **Impact:** High - Customers get unexpected modifications on items they didn't want changed
+- **Priority:** High - Affects order accuracy and customer satisfaction
+- **Status:** 🐛 **CONFIRMED**

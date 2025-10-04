@@ -72,9 +72,9 @@ async def modify_item_agent(
         # Execute LLM call
         result = await llm.ainvoke(prompt)
         
-        logger.info(f"Modify item parsed: {result.modification_type} (confidence: {result.confidence})")
-        if result.target_item_id:
-            logger.info(f"Target item ID: {result.target_item_id} (confidence: {result.target_confidence})")
+        logger.info(f"Modify item parsed: {len(result.modifications)} modifications (confidence: {result.confidence})")
+        if result.requires_split:
+            logger.info(f"Item splitting required: {result.remaining_unchanged} unchanged")
         if result.clarification_needed:
             logger.info(f"Clarification needed: {result.clarification_message}")
         

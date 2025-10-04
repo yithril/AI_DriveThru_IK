@@ -29,6 +29,7 @@ from app.services.menu_resolution_service import MenuResolutionService
 from app.services.menu_service import MenuService
 from app.services.ingredient_service import IngredientService
 from app.services.restaurant_service import RestaurantService
+from app.services.category_service import CategoryService
 from app.constants.intent_types import IntentType
 from app.constants.audio_phrases import AudioPhraseType, AudioPhraseConstants
 from app.config.settings import settings
@@ -70,7 +71,8 @@ class WorkflowOrchestrator:
         menu_service: MenuService,
         ingredient_service: IngredientService,
         restaurant_service: RestaurantService,
-        session_service: SessionService
+        session_service: SessionService,
+        category_service: CategoryService
     ):
         self.voice_service = voice_service
         self.order_session_service = order_session_service
@@ -79,6 +81,7 @@ class WorkflowOrchestrator:
         self.menu_service = menu_service
         self.ingredient_service = ingredient_service
         self.restaurant_service = restaurant_service
+        self.category_service = category_service
         
         # Initialize preprocessing workflow
         self.preprocessing_workflow = PreprocessingWorkflow()
@@ -96,7 +99,9 @@ class WorkflowOrchestrator:
         )
         
         self.modify_item_workflow = ModifyItemWorkflow(
-            order_session_service=self.order_session_service
+            order_session_service=self.order_session_service,
+            menu_service=self.menu_service,
+            ingredient_service=self.ingredient_service
         )
         
         self.remove_item_workflow = RemoveItemWorkflow(
@@ -115,7 +120,8 @@ class WorkflowOrchestrator:
             restaurant_id=None,  # Will be set per request
             menu_service=self.menu_service,
             ingredient_service=self.ingredient_service,
-            restaurant_service=self.restaurant_service
+            restaurant_service=self.restaurant_service,
+            category_service=self.category_service
         )
         
         self.clarification_workflow = ClarificationWorkflow()
@@ -156,6 +162,8 @@ class WorkflowOrchestrator:
             # Step 2: Get conversation context
             conversation_history = await self._get_conversation_history(session_id)
             current_order = await self._get_current_order(session_id)
+            
+            # Note: User input will be added to conversation history after processing
             
             # DEBUG: Log conversation history format
             logger.info(f"DEBUG WORKFLOW ORCHESTRATOR:")
@@ -211,7 +219,7 @@ class WorkflowOrchestrator:
                 restaurant_id=restaurant_id
             )
             
-            # Step 6: Update conversation history
+            # Step 6: Update conversation history (add both user input and AI response)
             await self._update_conversation_history(
                 session_id=session_id,
                 user_input=text_input,

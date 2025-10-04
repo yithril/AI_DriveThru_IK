@@ -26,6 +26,7 @@ class RemoveItemResult(BaseModel):
     # What to remove
     target_item_names: List[str] = Field(default_factory=list, description="Names of items to remove (e.g., ['burger', 'fries'])")
     target_item_ids: List[int] = Field(default_factory=list, description="IDs of specific OrderItems to remove")
+    modifier_specs: List[str] = Field(default_factory=list, description="Modifier specifications for targeted removal (e.g., ['extra lettuce', 'no onions'])")
     
     # Clarification handling
     clarification_needed: bool = Field(default=False, description="Whether clarification is needed")
@@ -168,14 +169,17 @@ CUSTOMER REMOVAL REQUESTS might include:
 - "delete the burger and fries"
 - "remove item 2" (referring to order position)
 - "I changed my mind about the burger"
+- "remove the fish sandwich with extra lettuce" (with modifier specification)
+- "take off the burger with no onions" (with modifier specification)
 
 IMPORTANT RULES:
 1. Look for item names in the current order that match the customer's request
 2. Use the item IDs from the current order for precise identification
-3. If the request is ambiguous (multiple items match), set clarification_needed=True
-4. If no items match the request, set clarification_needed=True
-5. Be conservative - ask for clarification when uncertain
-6. Consider conversation context and recent commands
+3. If the customer specifies modifiers (like "with extra lettuce", "with no onions"), include those in modifier_specs
+4. If the customer provides clear modifier specifications, be confident and set clarification_needed=False
+5. Only set clarification_needed=True if the request is truly ambiguous (no clear item name or modifier)
+6. If no items match the request, set clarification_needed=True
+7. Consider conversation context and recent commands
 
 OUTPUT FORMAT:
 {format_instructions}
@@ -194,4 +198,8 @@ Customer: "remove the pizza"
 Current Order: [{{"id": 1, "name": "Burger", "quantity": 1}}]
 Response: success=False, clarification_needed=True, clarification_message="I don't see any pizza in your current order. Did you mean to remove something else?"
 
-Remember: Always prioritize customer clarity and provide helpful clarification options when needed."""
+Customer: "remove the fish sandwich with extra lettuce"
+Current Order: [{{"id": 1, "name": "Cosmic Fish Sandwich", "modifications": {{"ingredient_modifications": "extra cheese"}}}}, {{"id": 2, "name": "Cosmic Fish Sandwich", "modifications": {{"ingredient_modifications": "extra lettuce"}}}}]
+Response: success=True, target_item_names=["fish sandwich"], modifier_specs=["extra lettuce"], confidence=0.95, clarification_needed=False
+
+Remember: When customers provide clear modifier specifications, be confident and don't ask for clarification."""

@@ -137,5 +137,6 @@ class Container(containers.DeclarativeContainer):
         menu_resolution_service=menu_resolution_service,
         menu_service=menu_service,
         ingredient_service=ingredient_service,
-        restaurant_service=restaurant_service
+        restaurant_service=restaurant_service,
+        category_service=category_service
     )

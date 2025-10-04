@@ -19,13 +19,14 @@ from app.dto.conversation_dto import ConversationHistory
 logger = logging.getLogger(__name__)
 
 
-def create_question_tools(menu_service, ingredient_service):
+def create_question_tools(menu_service, ingredient_service, category_service=None):
     """
     Create LangChain tools for the question agent.
     
     Args:
         menu_service: MenuService instance
         ingredient_service: IngredientService instance
+        category_service: CategoryService instance (optional)
         
     Returns:
         List of LangChain tools
@@ -66,6 +67,57 @@ def create_question_tools(menu_service, ingredient_service):
         except Exception as e:
             logger.error(f"Menu search tool error: {e}")
             return f"Error searching menu: {str(e)}"
+    
+    @tool
+    async def search_menu_by_category(category_name: str) -> str:
+        """
+        Search for menu items by category name.
+        Use this when the customer asks about categories like "desserts", "drinks", "appetizers", etc.
+        
+        Args:
+            category_name: The category to search for (e.g., "desserts", "drinks", "burgers")
+            
+        Returns:
+            String with menu items in that category
+        """
+        try:
+            if not category_service:
+                return "Category search not available"
+            
+            # Get restaurant_id from the bound service context
+            restaurant_id = getattr(menu_service, '_current_restaurant_id', 1)
+            
+            # Get all categories for the restaurant
+            categories_result = await category_service.get_by_restaurant(restaurant_id)
+            categories = categories_result.categories
+            
+            # Find matching category (case-insensitive)
+            matching_category = None
+            for category in categories:
+                if category_name.lower() in category.name.lower():
+                    matching_category = category
+                    break
+            
+            if not matching_category:
+                return f"No category found matching '{category_name}'"
+            
+            # Get menu items in this category
+            from app.services.menu_item_service import MenuItemService
+            menu_item_service = MenuItemService()
+            items_result = await menu_item_service.get_by_category(matching_category.id)
+            
+            if not items_result.menu_items:
+                return f"No items found in the '{matching_category.name}' category"
+            
+            items = []
+            for item in items_result.menu_items:
+                items.append(f"{item.name} (${item.price:.2f}) - {item.description}")
+            
+            return f"{matching_category.name}:\n" + "\n".join(items)
+            
+        except Exception as e:
+            logger.error(f"Category search tool error: {e}")
+            return f"Error searching category: {str(e)}"
     
     @tool
     async def search_ingredients(search_term: str) -> str:
@@ -142,7 +194,7 @@ def create_question_tools(menu_service, ingredient_service):
             logger.error(f"Menu item details tool error: {e}")
             return f"Error getting menu item details: {str(e)}"
     
-    return [search_menu_items, search_ingredients, get_menu_item_details]
+    return [search_menu_items, search_menu_by_category, search_ingredients, get_menu_item_details]
 
 
 async def question_agent(
@@ -151,6 +203,7 @@ async def question_agent(
     menu_service,
     ingredient_service,
     restaurant_service,
+    category_service=None,
     conversation_history: Optional[ConversationHistory] = None,
     current_order: Optional[Dict[str, Any]] = None
 ) -> QuestionResponse:
@@ -165,6 +218,7 @@ async def question_agent(
         menu_service: MenuService instance
         ingredient_service: IngredientService instance
         restaurant_service: RestaurantService instance
+        category_service: CategoryService instance (optional)
         conversation_history: Recent conversation turns (optional)
         current_order: Current order state (optional)
         
@@ -198,7 +252,7 @@ async def question_agent(
         history_text = _format_conversation_history(conversation_history)
         
         # Create tools with service bindings
-        tools = create_question_tools(menu_service, ingredient_service)
+        tools = create_question_tools(menu_service, ingredient_service, category_service)
         
         # Build system prompt
         system_prompt = f"""You are a helpful drive-thru assistant at {restaurant_info['name']}.

@@ -74,12 +74,27 @@ EXTRACTION RULES:
 - If something is unclear, set confidence < 0.8
 - If multiple items are mentioned, extract each separately
 
+MODIFIER DISTRIBUTION RULES:
+- When customer says "X items, Y of them with modifier", it means Y items get the modifier, (X-Y) items remain regular
+- Example: "4 fish sandwiches, one of them with extra cheese" = 1 fish sandwich with extra cheese + 3 regular fish sandwiches
+- Example: "3 burgers, two of them well done" = 2 well done burgers + 1 regular burger
+- Extract the modified subset and the regular subset as separate items
+- The total quantity should equal the original quantity mentioned
+
 EXAMPLES:
 "I want a Big Mac" → item_name: "Big Mac", quantity: 1, confidence: 0.9
 "Two large fries" → item_name: "fries", quantity: 2, size: "large", confidence: 0.9
 "A burger with no pickles" → item_name: "burger", quantity: 1, modifiers: ["no pickles"], confidence: 0.8
 "Give me a ton of cosmic sauce" → item_name: "cosmic sauce", quantity: 1, modifiers: ["extra cosmic sauce"], confidence: 0.9
 "I'll have the special" → item_name: "special", quantity: 1, confidence: 0.6 (unclear what special)
+
+MODIFIER DISTRIBUTION EXAMPLES:
+"4 fish sandwiches, one of them with extra cheese" → 
+  - item_name: "fish sandwich", quantity: 3, confidence: 0.9
+  - item_name: "fish sandwich", quantity: 1, modifiers: ["extra cheese"], confidence: 0.9
+"3 burgers, two of them well done" → 
+  - item_name: "burger", quantity: 1, confidence: 0.9
+  - item_name: "burger", quantity: 2, modifiers: ["well_done"], confidence: 0.9
 
 Return structured data with all extracted items.
 """

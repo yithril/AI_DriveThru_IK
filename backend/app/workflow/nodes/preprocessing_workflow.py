@@ -92,15 +92,15 @@ class PreprocessingWorkflow:
             if self.context_service.check_eligibility(cleaned_input, intent_result.intent.value):
                 self.logger.info("Context resolution needed")
                 
-                # Step 4: Context resolution
-                context_result = await self.context_agent.resolve_context(
+                # Step 4: Context resolution using ContextService
+                context_result = await self.context_service.resolve_context(
                     user_input=cleaned_input,
                     conversation_history=conversation_history,
                     command_history=command_history,
                     current_order=current_order
                 )
                 
-                if context_result.status == "SUCCESS":
+                if context_result.needs_resolution and context_result.confidence >= 0.8:
                     # Use resolved text for workflow execution
                     resolved_input = context_result.resolved_text
                     self.logger.info(f"Context resolved: '{cleaned_input}' → '{resolved_input}'")
@@ -115,12 +115,13 @@ class PreprocessingWorkflow:
                         needs_clarification=False
                     )
                 
-                elif context_result.status in ["CLARIFICATION_NEEDED", "UNRESOLVABLE"]:
+                elif context_result.needs_resolution and context_result.confidence < 0.8:
                     # Handle clarification scenario
-                    self.logger.info(f"Clarification needed: {context_result.status}")
+                    self.logger.info(f"Clarification needed: confidence={context_result.confidence}")
+                    self.logger.info(f"Context Service clarification message: '{context_result.resolved_text}'")
                     
                     clarification_result = await self.clarification_workflow.execute(
-                        clarification_message=context_result.clarification_message,
+                        clarification_message=context_result.resolved_text,
                         session_id=session_id,
                         conversation_history=conversation_history
                     )
