@@ -493,7 +493,7 @@ class ModifyItemService:
         
         # Handle other types of modifications (ingredients, size, etc.)
         parsed_mods = self._parse_modification_text(modification.modification)
-        self._apply_parsed_modifications(target_item, parsed_mods)
+        await self._apply_parsed_modifications(target_item, parsed_mods)
         
         # Build success message - keep it simple and generic
         message = "I've updated your order. Would you like anything else?"

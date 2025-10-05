@@ -19,6 +19,8 @@ export function SpeakerProvider({ children }: { children: ReactNode }) {
   const [isAPIProcessing, setIsAPIProcessing] = useState(false);
 
   const setAISpeaking = (speaking: boolean) => {
+    console.log(`DEBUG: setAISpeaking called with: ${speaking}, current state: ${isAISpeaking}`);
+    console.trace('setAISpeaking call stack');
     setIsAISpeaking(speaking);
   };
 

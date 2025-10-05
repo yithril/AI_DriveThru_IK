@@ -78,6 +78,9 @@ export default function FloatingMicrophone({ orderComponentRef }: FloatingMicrop
             // Trigger TTS for AI response
             if (response.audio_url) {
               setAISpeaking(true);
+            } else {
+              // Ensure AI speaking state is reset even when no audio
+              setAISpeaking(false);
             }
             
             // Refresh order if it changed

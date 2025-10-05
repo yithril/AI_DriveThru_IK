@@ -117,6 +117,9 @@ export default function SpeakerIcon({ isActive = false, isDisabled = false }: Sp
           audio.play();
           setAISpeaking(true);
           audio.onended = () => setAISpeaking(false);
+        } else {
+          // Ensure AI speaking state is reset even when no audio
+          setAISpeaking(false);
         }
         
         // Check if order state changed and trigger refresh

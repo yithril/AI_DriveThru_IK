@@ -229,6 +229,8 @@ class RemoveItemWorkflow:
         Returns:
             List of items to remove
         """
+        print(f"DEBUG: _find_items_to_remove called with {len(current_order)} items")
+        print(f"DEBUG: Agent result - target_item_names: {agent_result.target_item_names}, modifier_specs: {agent_result.modifier_specs}")
         items_to_remove = []
         
         # If agent provided specific item IDs, use those
@@ -242,18 +244,27 @@ class RemoveItemWorkflow:
         # Otherwise, match by item names and modifier specifications
         for i, target_name in enumerate(agent_result.target_item_names):
             modifier_spec = agent_result.modifier_specs[i] if i < len(agent_result.modifier_specs) else None
+            print(f"DEBUG: Processing target_name='{target_name}', modifier_spec='{modifier_spec}'")
             logger.info(f"DEBUG: Processing target_name='{target_name}', modifier_spec='{modifier_spec}'")
             
             # Find items matching the target name
             matching_items = []
+            print(f"DEBUG: Looking for items matching '{target_name}' in {len(current_order)} items")
             for item in current_order:
-                item_name = item.get("name", "").lower()
+                # Get item name from modifications.name (Redis structure)
+                modifications = item.get("modifications", {})
+                item_name = modifications.get("name", "").lower()
+                print(f"DEBUG: Checking item {item.get('id')} - item_name: '{item_name}', target: '{target_name.lower()}'")
                 if target_name.lower() in item_name or item_name in target_name.lower():
                     matching_items.append(item)
+                    print(f"DEBUG: MATCH! Item {item.get('id')} matches name '{target_name}' - name: '{item_name}'")
+                    logger.info(f"DEBUG: Item {item.get('id')} matches name '{target_name}' - name: '{item_name}', modifications: {modifications}")
             
+            print(f"DEBUG: Found {len(matching_items)} matching items for '{target_name}'")
             logger.info(f"DEBUG: Found {len(matching_items)} matching items for '{target_name}'")
             
             if not matching_items:
+                print(f"DEBUG: No matching items found for '{target_name}', skipping")
                 continue
             
             # If no modifier specified, take the first match
@@ -261,6 +272,8 @@ class RemoveItemWorkflow:
                 logger.info(f"DEBUG: No modifier specified, taking first match: {matching_items[0].get('id')}")
                 items_to_remove.append(matching_items[0])
                 continue
+            
+            logger.info(f"DEBUG: Modifier specified: '{modifier_spec}', checking {len(matching_items)} matching items")
             
             # Find item with matching modifier specification
             modifier_spec_lower = modifier_spec.lower()
@@ -273,7 +286,10 @@ class RemoveItemWorkflow:
                 # Check if the modifier specification matches
                 # Use exact matching to avoid false positives
                 ingredient_mods_lower = ingredient_mods.lower()
+                print(f"DEBUG: Comparing '{modifier_spec_lower}' with '{ingredient_mods_lower}'")
+                logger.info(f"DEBUG: Comparing '{modifier_spec_lower}' with '{ingredient_mods_lower}'")
                 if modifier_spec_lower == ingredient_mods_lower:
+                    print(f"DEBUG: Found exact match! Item {item.get('id')} matches modifier '{modifier_spec_lower}'")
                     logger.info(f"DEBUG: Found exact match! Item {item.get('id')} matches modifier '{modifier_spec_lower}'")
                     items_to_remove.append(item)
                     break
@@ -282,12 +298,16 @@ class RemoveItemWorkflow:
                     import re
                     pattern = r'\b' + re.escape(modifier_spec_lower) + r'\b'
                     if re.search(pattern, ingredient_mods_lower):
+                        print(f"DEBUG: Found word boundary match! Item {item.get('id')} matches modifier '{modifier_spec_lower}'")
                         logger.info(f"DEBUG: Found word boundary match! Item {item.get('id')} matches modifier '{modifier_spec_lower}'")
                         items_to_remove.append(item)
                         break
             else:
                 # If no exact modifier match, take the first item (fallback)
+                print(f"DEBUG: No exact modifier match, taking first item as fallback: {matching_items[0].get('id')}")
+                print(f"DEBUG: Fallback item details: {matching_items[0].get('modifications', {})}")
                 logger.info(f"DEBUG: No exact modifier match, taking first item as fallback: {matching_items[0].get('id')}")
+                logger.info(f"DEBUG: Fallback item details: {matching_items[0].get('modifications', {})}")
                 items_to_remove.append(matching_items[0])
         
         return items_to_remove
